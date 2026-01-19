@@ -1,11 +1,15 @@
 """Mesa model for Iterated Prisoner's Dilemma on networks."""
 
+import random
+
 import axelrod as axl
 from mesa import Model
 from mesa.space import NetworkGrid
 
 from ipd_network.agents import IPDAgent
+from ipd_network.core import Agent, Network
 from ipd_network.network import generate_graph
+from ipd_network.simple_strategies import RandomActionStrategy
 from ipd_network.strategies import create_strategy
 from ipd_network.utils import get_logger, set_random_seed
 
@@ -97,3 +101,87 @@ class IPDModel(Model):
     def iter_agents(self):
         """Yield all agents in the model."""
         return iter(self.agents)
+
+
+class GridImitationModel:
+    """Imitation dynamics on a periodic grid with fixed C/D actions."""
+
+    def __init__(self, size=20, rounds=50, seed=None, payoff_matrix=None):
+        self.size = size
+        self.rounds = rounds
+        self.seed = seed
+        self.payoff_matrix = payoff_matrix or {
+            ("C", "C"): (3, 3),
+            ("C", "D"): (0, 5),
+            ("D", "C"): (5, 0),
+            ("D", "D"): (1, 1),
+        }
+        self.random = random.Random(seed)
+        # Periodic grid gives each node exactly four neighbors.
+        self.graph = generate_graph("grid", size, m=size, periodic=True)
+        self.network = Network(self.graph)
+        self.agents = {}
+        self._init_agents()
+        self.snapshots = []
+
+    def _init_agents(self):
+        """Create agents with random starting actions."""
+        for node_id in self.graph.nodes:
+            strategy = RandomActionStrategy(self.random)
+            self.agents[node_id] = Agent(node_id, strategy)
+
+    def _reset_payoffs(self):
+        # Payoffs are per-round for imitation.
+        for agent in self.agents.values():
+            agent.payoff = 0.0
+
+    def _play_round(self):
+        """Compute payoffs for the current actions."""
+        self._reset_payoffs()
+        # Each edge is evaluated once, updating both endpoints.
+        for node_a, node_b in self.graph.edges:
+            agent_a = self.agents[node_a]
+            agent_b = self.agents[node_b]
+            action_a = agent_a.strategy.decide(agent_a.id, agent_a.history, {})
+            action_b = agent_b.strategy.decide(agent_b.id, agent_b.history, {})
+            payoff_a, payoff_b = self.payoff_matrix[(action_a, action_b)]
+            agent_a.record_interaction(node_b, action_a, action_b, payoff_a)
+            agent_b.record_interaction(node_a, action_b, action_a, payoff_b)
+
+    def _imitate_best_neighbor(self):
+        """Copy the action of the best-performing neighbor (or self)."""
+        next_actions = {}
+        for node_id in self.graph.nodes:
+            candidates = [node_id] + list(self.network.neighbors(node_id))
+            best_score = max(self.agents[candidate].payoff for candidate in candidates)
+            best_nodes = [
+                candidate
+                for candidate in candidates
+                if self.agents[candidate].payoff == best_score
+            ]
+            chosen = self.random.choice(best_nodes)
+            next_actions[node_id] = self.agents[chosen].strategy.action
+
+        for node_id, action in next_actions.items():
+            self.agents[node_id].strategy.set_action(action)
+
+    def step(self):
+        """Run one payoff calculation and one imitation update."""
+        self._play_round()
+        self._imitate_best_neighbor()
+        self.snapshots.append(self.action_grid())
+
+    def run(self):
+        """Run the model for the configured number of rounds."""
+        for _ in range(self.rounds):
+            self.step()
+
+    def action_grid(self):
+        """Return a 2D grid of actions for visualization."""
+        grid = [[0 for _ in range(self.size)] for _ in range(self.size)]
+        for node_id, agent in self.agents.items():
+            # Grid nodes are relabeled to ints, so map back to row/col.
+            row = node_id // self.size
+            col = node_id % self.size
+            grid[row][col] = 1 if agent.strategy.action == "D" else 0
+        return grid

@@ -53,3 +53,37 @@ Removed unused test import in test_core.py and updated exports in __init__.py.
 Significantly better, I can now read start through it to validate all the mechanisms and functionality, make edits, and working on it by hand.
 
 ---
+
+##### Prompt:
+Implement a basic example using the existing codebase, it should be: on a grid network (each node connected to four others) and the default payoffs, each agents strategy should be random to begin with (cooperate or defect) and each node should update to copy its neighbours based on whichever one lead to the highest payoff. Match the existing code style and write dosctrings and explanatory comments. Produce a demo with a visualisation to see the results over time.
+
+##### Result:
+Added a compact, readable grid imitation demo with animation. It starts each node with a random C/D action, computes payoffs with the default matrix, then updates each node by copying the highest-payoff neighbor (ties random). The demo uses a periodic grid so every node has four neighbors, and shows the evolution over time.
+
+##### Evaluation:
+Not up to scratch, implemented it from the ground up in a new file - back to the drawing board.
+
+---
+
+##### Prompt:
+Firstly, I want to use the classes that have already been built, not create a new script that implements the functionality from scratch, the point is to make sure the classes are built out enough to at least make this example easy, if not, work on the classes first. Secondly, we're getting an error: "ModuleNotFoundError: No module named 'ipd_network'"
+
+##### Result:
+Updated the example to use the existing package classes, and added a compact GridImitationModel built on core.Agent + simple_strategies.RandomActionStrategy so the demo is driven by your framework (not a standalone reimplementation). The demo now calls into that model and only handles visualization.
+
+Changes made:
+Added GridImitationModel to simulation.py with docstrings and a few explanatory comments about periodic grids and per‑round payoffs.
+Added lightweight strategies in simple_strategies.py to support random initial actions and easy action copying.
+Moved the demo into the package and rewired it to use the model: grid_imitation_demo.py.
+Exported the new model/strategies via __init__.py.
+
+Why the ModuleNotFoundError happened and how to run:
+Your package uses a src/ layout, so Python won’t find ipd_network unless it’s installed or src is on PYTHONPATH.
+From /Users/tristanfarran/Documents/Code/2026/Code/CSS-Project/ipd_network run:
+pip install -e .
+python -m ipd_network.examples.grid_imitation_demo
+
+##### Evaluation:
+Ok, it now works though it doesn't produce any interesting results. The point was just to get it to architect an example so it's easier to understand how everything fits together.
+
+---

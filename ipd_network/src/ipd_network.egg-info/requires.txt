@@ -1,5 +1,4 @@
 networkx>=3.0
 mesa>=2.1
 axelrod>=4.12
-pytest>=7.4
 matplotlib>=3.7
