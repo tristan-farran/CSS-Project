@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ipd-network"
+version = "0.1.0"
+description = "Agent-based Iterated Prisoner's Dilemma on networks."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "networkx>=3.0",
+  "mesa>=2.1",
+  "axelrod>=4.12",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
