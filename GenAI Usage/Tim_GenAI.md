@@ -29,62 +29,33 @@ class NetworkSimulation:
     """
 
     def __init__(self, graph, rounds=50, seed=None, payoff_matrix=DEFAULT_PAYOFFS):
-        self.rounds = rounds
-        self.seed = seed
-        self.payoff_matrix = payoff_matrix
-        self.random = random.Random(seed)
-        
-        # Accept any pre-built networkx graph
-        self.graph = graph
-        self.network = Network(self.graph)
-        
-        self.agents = {}
-        self.snapshots = []
-        self._init_agents()
+        code
 
     def _init_agents(self):
         """Create agents with random starting actions for every node in the graph."""
-        for node_id in self.graph.nodes:
-            # We default to RandomActionStrategy, but this could also be parameterized
-            strategy = RandomActionStrategy(self.random)
-            self.agents[node_id] = Agent(node_id, strategy)
+        code
 
     def _reset_payoffs(self):
         """Reset payoffs for the new round."""
-        for agent in self.agents.values():
-            agent.payoff = 0.0
+        code
 
     def _play_round(self):
         """
         Compute payoffs for the current actions across all edges.
         This is topology-agnostic; it just iterates over edges.
         """
-        self._reset_payoffs()
-        for node_a, node_b in self.graph.edges:
-            agent_a = self.agents[node_a]
-            agent_b = self.agents[node_b]
-            
-            action_a = agent_a.strategy.decide(agent_a.id, agent_a.history, {})
-            action_b = agent_b.strategy.decide(agent_b.id, agent_b.history, {})
-            
-            payoff_a, payoff_b = self.payoff_matrix.get((action_a, action_b), (0, 0))
-            
-            agent_a.record_interaction(node_b, action_a, action_b, payoff_a)
-            agent_b.record_interaction(node_a, action_b, action_a, payoff_b)
+        code
 
     def _update_strategies(self):
         """
         Define how agents update their strategies after a round.
         Must be implemented by subclasses (e.g., Imitation, Learning).
         """
-        raise NotImplementedError("Subclasses must implement _update_strategies")
+        code
 
     def get_action_state(self):
         """Return a dictionary mapping node_id to current action (0 for C, 1 for D)."""
-        return {
-            node_id: (1 if agent.strategy.action == "D" else 0)
-            for node_id, agent in self.agents.items()
-        }
+        code
 
     def step(self):
         """Run one full step: play game -> update strategies -> snapshot."""
@@ -115,31 +86,7 @@ class ImitationDynamics(NetworkSimulation):
 
     def _update_strategies(self):
         """Copy the action of the best-performing neighbor (or self)."""
-        next_actions = {}
-        
-        # Iterate over all agents in the generic graph
-        for node_id in self.graph.nodes:
-            # Candidates are the node itself + its neighbors
-            candidates = [node_id] + list(self.network.neighbors(node_id))
-            
-            # Find the max payoff among candidates
-            best_score = max(self.agents[candidate].payoff for candidate in candidates)
-            
-            # Identify all candidates who achieved that score (tie-breaking)
-            best_nodes = [
-                candidate
-                for candidate in candidates
-                if self.agents[candidate].payoff == best_score
-            ]
-            
-            # Randomly choose one of the best performing nodes
-            chosen = self.random.choice(best_nodes)
-            next_actions[node_id] = self.agents[chosen].strategy.action
-
-        # Apply updates synchronously
-        for node_id, action in next_actions.items():
-            self.agents[node_id].strategy.set_action(action)
-
+        code
 ```
 
 ---
