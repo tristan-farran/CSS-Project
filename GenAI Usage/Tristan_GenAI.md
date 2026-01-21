@@ -1680,3 +1680,22 @@ Implemented a full statistics workflow in the notebook’s Statistics section us
 
 ###### Evaluation:
 Much better, actually starting to look like it makes some sense.
+
+---
+
+###### Prompt:
+Are the structure sensitivity plots averaged across runs? Ensure they are, and sample more points. Also, sort descending within network type for the architecture plot dont mix all the network types.
+
+###### Response:
+Updated the stats/plots cell to explicitly use averaged structure-sensitivity data for plotting, sample more structure points, and sort the architecture plot within each network type rather than mixing them.
+
+Details:
+
+Structure sensitivity now samples a denser structure_ps grid and the plots are built from structure_summary (already averaged across seeds/runs) so the display is definitely averaged (Tristan_Code.ipynb).
+Architecture plot ordering now sorts by network label and then by tail_mean_coop_frac descending, keeping network types grouped (Tristan_Code.ipynb).
+
+
+######  Evaluation
+Works perfectly.
+
+---
