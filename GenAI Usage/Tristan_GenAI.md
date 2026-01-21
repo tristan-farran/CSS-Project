@@ -1564,3 +1564,118 @@ Appended a demo cell that plots cooperation fraction + largest coop cluster over
 
 ###### Evaluation:
 Looks good, don't think it will be workable immediately but good progress.
+
+---
+
+##### Prompt:
+Let's extend my work in this notebook, the next task is to investigate the following:
+RQ1. Holding N and mean degree ⟨k⟩ fixed, how does network architecture (e.g., lattice, ER, WS, BA,
+DC-SBM) affect long-run cooperation and local assortment?
+Measurements.
+•Long-run cooperation level  ̄C.
+•Neighbor cooperation (assortment). Let N(i) be neighbors of i and ki = |N(i)|. Define neighbor mean
+ ̄xN(i)(t) = 1
+ki
+∑
+j∈N(i)
+xj (t).
+Define Pearson correlation
+r(t) = Corr(xi(t),  ̄xN(i)(t))N
+i=1 .
+•Report network statistics (as controls/mediators): clustering coefficient, average shortest path length
+(on the giant component), degree heterogeneity (e.g., CV(k)), modularity (if applicable)
+In general the idea is to see if the type of network, parameters of each type of network, and key statistics of networks (below) show a consistent relationship to outcomes indicating the level of cooperation in the system
+
+Using:
+https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.approximation.clustering_coefficient.average_clustering.html#networkx.algorithms.approximation.clustering_coefficient.average_clustering
+https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.approximation.distance_measures.diameter.html#networkx.algorithms.approximation.distance_measures.diameter
+https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.assortativity.degree_assortativity_coefficient.html#networkx.algorithms.assortativity.degree_assortativity_coefficient
+https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.transitivity.html#networkx.algorithms.cluster.transitivity
+https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.shortest_paths.generic.average_shortest_path_length.html#networkx.algorithms.shortest_paths.generic.average_shortest_path_length
+
+Do not overwrite the existing class architecture, the logic should be the same, if it is necessary to extend functionality in some classes (e.g. adding methods) do so simply, effectively and with docstrings.
+
+##### Response:
+Added NetworkSimulation.state01_array, run_until_attractor, and cooperation_assortment (with docstrings) in Tristan_Code.ipynb.
+Added helper functions network_statistics, summarize_cycle, and run_rq1 for long‑run cooperation + assortment + network stats in Tristan_Code.ipynb.
+Appended an RQ1 demo cell that runs ER/WS/BA (and a commented DC‑SBM example), prints summary stats, and plots clustering vs cooperation/assortment in Tristan_Code.ipynb.
+
+##### Reprompt:
+The output table and output plots aren't very clear, morever there doesn't seem to be any relationship between average clustering and assortment or long-run cooperation, moreover the average clustering seems to be almost constant for each type of network, and we get all long run cooperation values and assortments for each type of network, probably because some other parameter is changing. Let's improve this and show the relationship between all of the variables of interest more clearly, and make sure we are sufficiently varying all network parameters to produce different average clustering within network etc.
+
+##### Response:
+What changed:
+network_statistics now includes mean_degree so you can verify the “fixed ⟨k⟩” constraint.
+run_architecture_sweep now carries scalar graph parameters (like p, k, m) into the results for easy grouping/plotting.
+RQ1 demo cell now:
+Sweeps WS p to vary clustering while keeping ⟨k⟩ fixed.
+Adds a single ER and BA control (fixed ⟨k⟩).
+Adds SBM variants by varying p_out and computing p_in to keep ⟨k⟩ fixed.
+Prints a clearer grouped summary.
+Adds 3 scatter plots: clustering→cooperation, clustering→assortment, degree CV→cooperation.
+
+##### Reprompt:
+It's very slow and there doesn't seem to be anyrelationship between network parameters and anything else, average clustering and degree cv are alwasys stuck at the same point for each type and logn run cooperation shows the same range
+
+##### Result:
+I tightened the sweep for speed, widened the structural variation, and added smoother long‑run metrics + binned trend lines in Tristan_Code.ipynb.
+
+What changed:
+Faster run: n=300, seeds=6, max_steps=600.
+More variation: mean degree now sweeps [4, 8, 12]; WS p and SBM p_out ranges adjusted.
+Added tail_mean_* metrics (average over last 100 steps) to reduce discretization.
+Plots now show global scatter + binned averages to highlight weak trends.
+
+##### Remprot:
+It's extremely slow, speed up the whole notebook, use async techniques where helpful, and the graphs still show nonsense theres just now a trendline on that nonsense
+
+##### Result:
+Added fast_mode toggle to downscale n, seeds, steps, and config count.
+Skipped heavy path metrics in fast mode (average_shortest_path_length, diameter).
+Added a tail‑window average metric to smooth outcomes without long attractor runs.
+Added optional parallel execution via ProcessPoolExecutor in run_architecture_sweep.
+Switched parallelism to joblib and enabled it in the RQ1 cell.
+
+The trendline just makes the flat signal more obvious. This likely means the dynamics (Imitation + Snowdrift) are dominating and the network structure isn’t changing the long‑run outcome much.
+
+I added NetworkSimulation.cooperation_metrics() so we can track cooperator cluster size directly.
+Expanded trailing_window_metrics() to include:
+tail_std_coop_frac and tail_std_assortment (variability in the tail),
+tail_mean_largest_cluster (time‑averaged largest cooperator cluster).
+RQ1 now sweeps both strategy and payoff:
+Strategies: Imitation, Fermi K=0.1, Fermi K=1.0
+Payoffs: Snowdrift, Prisoners
+Plot is now focused on one combo (focus_payoff/focus_strategy) to avoid clutter.
+
+##### Reprompt:
+the notebook is now a mess and there are errors, go through it cleaning everything up to make it as simple and readable as possible
+
+##### Result:
+Removed joblib usage and parallel complexity from the helpers.
+Kept only three simple helpers: network_statistics, trailing_window_metrics, and run_architecture_sweep.
+Rewrote the RQ1 cell to:
+run one payoff + one strategy (clear baseline),
+use a small config sweep,
+print a tidy summary table,
+show just two readable scatter plots.
+
+##### Evaluation:
+Fine for now, it wasn't really able to do what I needed but lets see if its salvageable.
+
+---
+
+###### Prompt:
+Use the functionality I've built to try to answer the following questions in the statistics tab of the notebook:
+●   Which network architectures are more or less suited for emerging cooperation?
+●   Are there critical points or phase transitions?
+●   Does percolation appear for certain parameter levels? If so, which?
+●   How do network structure and parameters affect the correlation/covariance between  an agent’s cooperation and the cooperation of its neighbors 
+●   Does clustering help? Do networks with higher clustering support higher long-run cooperation  than random networks, holding average degree constant?
+●   Does cooperation increases when cooperators connected to cooperators, measured by positive covariance between an agent’s action and neighbor actions?
+
+Keep the code simple, readable and fast (with docstrings) and use the existing architecture.
+
+###### Response:
+
+
+###### Evaluation:
