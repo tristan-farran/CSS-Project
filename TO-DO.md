@@ -12,3 +12,5 @@
 
 ### RQ3 (Phase transitions / percolation-like behavior): Are there thresholds?
 - Tim
+
+requirements.txt
