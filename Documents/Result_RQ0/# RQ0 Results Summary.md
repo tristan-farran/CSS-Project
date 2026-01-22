@@ -126,7 +126,7 @@ You consistently see `ActionStrategy ≈ 0.51425` across *all* networks and payo
 
 **Interpretation:**  
 This invariance indicates that ActionStrategy is likely generating near-random actions with a fixed bias (or fixed initial proportion) rather than adapting to payoffs. Therefore:
-- It is a **control** / sanity baseline for “non-learning behavior,”
+- It is a **control** baseline for “non-learning behavior,”
 - It **should not** be used as evidence that cooperation persists due to payoff incentives.
 
 ### 3.2 Imitation vs Fermi
@@ -145,7 +145,7 @@ RL is adapting, but its learned behavior still depends on payoff regime—consis
 
 ---
 
-## 4. Direct answers to research questions (v1 scope)
+## 4. Direct answers to research questions
 
 ### RQ0: Does the system reach persistent (non-trivial) cooperation?
 **Answer (v1):**  
@@ -172,24 +172,8 @@ RL is adapting, but its learned behavior still depends on payoff regime—consis
 - **Supported** in favorable payoff regimes (Snowdrift): imitation yields high \bar{C}, especially on structured networks like WS low rewiring and SBM strong.
 - **Not supported** in strong PD regimes (Prisoners, mostly Canonical): imitation does not maintain non-trivial \bar{C} even on structured networks.
 
-### “Clustering helps” hypothesis (your earlier hypothesis)
+### “Clustering helps” hypothesis 
 - **Partially supported**: WS_k8_p0.01 often improves \bar{C} for imitation/Fermi compared to more random settings, but the effect is payoff-dependent and does not overcome strong PD incentives.
 
-### “Cooperators connected to cooperators” / assortment hypothesis
-- **Not directly tested yet**: you would need local assortment / covariance measurements or CC edge fractions to validate this (planned next).
 
----
 
-## 6. Notes / caveats for v1 reporting
-1. **ActionStrategy constant ~0.514** across all conditions indicates it is not payoff-driven; treat as baseline control rather than “successful cooperation.”
-2. Your current summary is based on \bar{C} only. For a stronger RQ0 claim, include:
-   - `Pr_allD`, `Pr_allC` (fixation probabilities),
-   - time series plots C(t) for a few seeds to show stabilization vs collapse.
-3. Because you ran only one K (0.5) for Fermi and fixed RL hyperparameters, “requirements” are preliminary; later sweeps over K, b/c (or T), and network parameters will strengthen conclusions.
-
----
-
-## 7. Next steps (to align with remaining RQs)
-- **Parameter sweeps** (RQ3): vary b/c (or T), K, and network parameters (WS p, SBM p_in/p_out) and look for sharp changes in \bar{C}, fixation rates, and cooperative component size.
-- **Cluster/percolation metrics** (RQ3): compute S_max and cluster size distribution n_s(t).
-- **Assortment metrics** (RQ2): compute edge-type fractions f_CC, f_CD, f_DD and local assortment/covariance between node action and neighbor actions.
