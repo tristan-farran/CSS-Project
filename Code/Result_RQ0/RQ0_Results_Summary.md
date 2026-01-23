@@ -55,7 +55,7 @@ This outcome **contradicts** the “persistence in PD” expectation unless “f
 - `ActionStrategy` ≈ 0.514.
 
 **Interpretation (RQ0):**  
-Under this payoff matrix, imitation/Fermi still do not sustain high cooperation, but the RL learner maintains a **non-trivial** cooperation fraction. This suggests that your RL rule is not simply converging to “always defect” in this payoff and may be balancing exploration/exploitation to reach an intermediate behavior.
+Under this payoff matrix, imitation/Fermi still do not sustain high cooperation, but the RL learner maintains a **non-trivial** cooperation fraction. This suggests that the RL rule is not simply converging to “always defect” in this payoff and may be balancing exploration/exploitation to reach an intermediate behavior.
 
 **Hypothesis link:**  
 This gives a case where “non-trivial \bar{C}” exists (for RL), but it is not clearly driven by network clustering in this first sweep (values are similar across networks).
@@ -162,7 +162,6 @@ RL is adapting, but its learned behavior still depends on payoff regime—consis
 - **Payoff regime is the primary requirement**: Snowdrift supports coexistence → persistent cooperation emerges; strong PD does not.  
 - **Update rule matters**: imitation can be fragile in some payoffs (Friend or Foe), while Fermi can maintain moderate cooperation there. RL yields intermediate behavior in multiple payoffs.
 
-*(RQ3 phase transitions / percolation and RQ4 rewiring are not directly tested in this v1 table since you did not yet sweep parameters like T, b/c, K, w or compute component size statistics.)*
 
 ---
 
@@ -175,5 +174,112 @@ RL is adapting, but its learned behavior still depends on payoff regime—consis
 ### “Clustering helps” hypothesis 
 - **Partially supported**: WS_k8_p0.01 often improves \bar{C} for imitation/Fermi compared to more random settings, but the effect is payoff-dependent and does not overcome strong PD incentives.
 
+---
+
+## 6. Time to absorption (fixation speed) across conditions
+
+### 6.1 What `mean_time_to_absorption` means in our runs
+- `mean_time_to_absorption` is the **average number of rounds until the system reaches an absorbing state** (all-C or all-D) **for those runs that actually absorbed**.
+- If `mean_time_to_absorption` is **blank/NaN**, it means **no absorbing state was reached within the simulated horizon** in that condition (i.e., the process remained in a mixed state for the entire run). This should be treated as a **right-censored** absorption time: “time to absorption > simulation length”.
+
+Because absorption may occur only in some seeds, it is important to interpret absorption together with:
+- `Pr_allD`, `Pr_allC` (how often absorption happened and which absorbing state),
+- `mean_barC` (whether the non-absorbing runs maintain non-trivial cooperation).
+
+### 6.2 High-level patterns (across payoffs and strategies)
+
+**(A) Snowdrift: no absorption observed**  
+Across all networks and payoff-responsive strategies (Imitate / Fermi / RL), `Pr_allD = Pr_allC = 0` and `mean_time_to_absorption` is NaN, consistent with a **coexistence regime** where mixed states persist.
+
+**(B) Strong PD (Prisoners): absorption happens quickly**  
+- Under **Imitation**, absorption to all-D is very fast: mean time ≈ **12 rounds** (11–14 across networks).  
+- Under **Fermi(K=0.5)**, absorption also occurs frequently but more slowly: mean time ≈ **64 rounds** (≈43–94 depending on network).  
+This aligns with the idea that strong PD incentives create a strong pull toward defection, and payoff-based update rules reach fixation rapidly.
+
+**(C) Weak-PD-like (Default, Friend or Foe) and PD-like (Canonical): absorption is slower, especially for Fermi**  
+- **Fermi(K=0.5)** shows frequent all-D absorption but often only after **hundreds of rounds** (≈224–317 on average, payoff-dependent).
+- **Imitation** (when it absorbs at all) does so quickly (≈18–27 rounds) and only in some networks.
+
+**(D) RL and Action show no absorption in this experiment window**  
+For RL (and Action baseline), `Pr_allD = Pr_allC = 0` and `mean_time_to_absorption` is NaN across payoffs/networks, meaning these dynamics **did not fixate** within the run length used in this sweep.
+
+### 6.3 Quantitative summary tables (absorption frequency + speed)
+
+### Canonical — absorption frequency and time
+
+| Strategy | mean \bar{C} | mean Pr(all-D) | mean Pr(all-C) | mean Pr(absorb) | mean time to absorption | min | max | networks with absorption |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Action | 0.514 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+| Imitate | 0.090 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+| Fermi | 0.029 | 0.889 | 0.011 | 0.900 | 224.1 | 158.7 | 302.0 | 9/9 |
+| RL | 0.055 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+
+### Default — absorption frequency and time
+
+| Strategy | mean \bar{C} | mean Pr(all-D) | mean Pr(all-C) | mean Pr(absorb) | mean time to absorption | min | max | networks with absorption |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Action | 0.514 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+| Imitate | 0.020 | 0.089 | 0.000 | 0.089 | 24.1 | 21.0 | 27.0 | 5/9 |
+| Fermi | 0.045 | 0.722 | 0.000 | 0.722 | 258.4 | 182.3 | 352.3 | 9/9 |
+| RL | 0.379 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+
+### Friend or Foe — absorption frequency and time
+
+| Strategy | mean \bar{C} | mean Pr(all-D) | mean Pr(all-C) | mean Pr(absorb) | mean time to absorption | min | max | networks with absorption |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Action | 0.514 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+| Imitate | 0.014 | 0.133 | 0.000 | 0.133 | 20.8 | 18.0 | 24.0 | 4/9 |
+| Fermi | 0.118 | 0.511 | 0.000 | 0.511 | 316.8 | 248.5 | 383.3 | 9/9 |
+| RL | 0.358 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+
+### Prisoners — absorption frequency and time
+
+| Strategy | mean \bar{C} | mean Pr(all-D) | mean Pr(all-C) | mean Pr(absorb) | mean time to absorption | min | max | networks with absorption |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Action | 0.514 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+| Imitate | 0.002 | 0.711 | 0.000 | 0.711 | 12.0 | 11.0 | 14.0 | 9/9 |
+| Fermi | 0.000 | 0.922 | 0.000 | 0.922 | 64.3 | 43.5 | 94.1 | 9/9 |
+| RL | 0.051 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+
+### Snowdrift — absorption frequency and time
+
+| Strategy | mean \bar{C} | mean Pr(all-D) | mean Pr(all-C) | mean Pr(absorb) | mean time to absorption | min | max | networks with absorption |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Action | 0.514 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+| Imitate | 0.477 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+| Fermi | 0.380 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
+| RL | 0.554 | 0.000 | 0.000 | 0.000 |  |  |  | 0/9 |
 
 
+### 6.4 Network effects on absorption time (where absorption was observed)
+
+Below are the **fastest** and **slowest** absorption networks (based on the reported `mean_time_to_absorption`) for conditions that reached absorption:
+
+- **Canonical / Fermi**: fastest = `BA_m4` (158.7 rounds, Pr(all-D)=0.9); slowest = `WS_k8_p0.01` (302.0 rounds, Pr(all-D)=0.8).
+- **Default / Fermi**: fastest = `BA_m4` (182.3 rounds, Pr(all-D)=1.0); slowest = `WS_k8_p0.01` (352.3 rounds, Pr(all-D)=0.3).
+- **Default / Imitate**: fastest = `BA_m4` (21.0 rounds, Pr(all-D)=0.1); slowest = `ER_p0.02` (27.0 rounds, Pr(all-D)=0.1).
+- **Friend or Foe / Fermi**: fastest = `BA_m4` (248.5 rounds, Pr(all-D)=0.8); slowest = `Grid_20x20` (383.3 rounds, Pr(all-D)=0.7).
+- **Friend or Foe / Imitate**: fastest = `BA_m4` (18.0 rounds, Pr(all-D)=0.1); slowest = `WS_k8_p0.5` (24.0 rounds, Pr(all-D)=0.1).
+- **Prisoners / Fermi**: fastest = `ER_p0.015` (43.5 rounds, Pr(all-D)=0.6); slowest = `SBM_2block_strong` (94.1 rounds, Pr(all-D)=1.0).
+- **Prisoners / Imitate**: fastest = `BA_m4` (11.0 rounds, Pr(all-D)=0.9); slowest = `WS_k8_p0.01` (14.0 rounds, Pr(all-D)=0.1).
+
+**Interpretation:**  
+- In multiple payoff regimes, **WS_k8_p0.01 (high clustering / low rewiring)** tends to **delay** absorption under Fermi, and often coincides with higher `mean_barC`. This is consistent with “cluster protection”: cooperators can survive longer (or indefinitely) in locally clustered neighborhoods.
+- In contrast, **BA_m4** frequently shows **faster** absorption times (especially for Fermi/Imitation in Canonical/Default/Friend-or-Foe), suggesting that degree heterogeneity (hubs) can accelerate convergence to fixation under certain update rules.
+
+### 6.5 How this strengthens the RQ0 conclusion (“can cooperation persist?”)
+
+Combining `mean_barC` with absorption timing gives a sharper answer:
+
+- **Persistent cooperation** is most convincingly supported when:
+  - `mean_barC` is **intermediate/high**, **and**
+  - `Pr_absorb` is **low**, with `mean_time_to_absorption` **not observed** (NaN) → indicating a stable mixed regime within the simulation horizon.  
+  This is exactly what we see in **Snowdrift** across networks.
+
+- **Collapse to defection** is supported when:
+  - `Pr_allD` is high, **and**
+  - absorption happens **quickly** (small mean time), particularly in **Prisoners** under imitation (~12 rounds) and Fermi (~64 rounds).
+
+- **Slow drift toward fixation** appears when:
+  - `Pr_allD` is moderate-to-high but absorption takes **hundreds** of rounds (Canonical/Default/Friend-or-Foe under Fermi).  
+  Here, some runs remain mixed for a long time, but the long-run trend still favors defection in many seeds.
