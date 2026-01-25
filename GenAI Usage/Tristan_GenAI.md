@@ -1708,3 +1708,14 @@ Provided a unified document.
 
 ###### Evaluation:
 Seems fine, excessively enthusiastic tone as usual but all the core findings are there, good jumping off point for synthesising conclusions.
+
+---
+
+###### Prompt:
+Make the plots prettier and more readable.
+
+###### Response:
+Enhanced readability with a global Matplotlib style, bigger type, and thicker lines in Tristan_Code.ipynb.
+
+###### Evaluation:
+Slighlty better.
