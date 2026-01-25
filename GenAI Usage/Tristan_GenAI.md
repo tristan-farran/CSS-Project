@@ -1696,6 +1696,15 @@ Architecture plot ordering now sorts by network label and then by tail_mean_coop
 
 
 ######  Evaluation
-Works perfectly.
+Works well.
 
 ---
+
+###### Prompt:
+Make one unified document out of my findings, make it concise without losing anything (document attached)
+
+###### Response:
+Provided a unified document.
+
+###### Evaluation:
+Seems fine, excessively enthusiastic tone as usual but all the core findings are there, good jumping off point for synthesising conclusions.
