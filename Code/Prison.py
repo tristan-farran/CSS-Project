@@ -18,9 +18,9 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 class ActionStrategy:
     """Strategy that always plays its current action, randomly initialized."""
 
-    def __init__(self, rng):
+    def __init__(self, rng, initial_cooperation_degree=0.5):
         self.rng = rng
-        self.action = "C" if self.rng.random() < 0.5 else "D"
+        self.action = "C" if self.rng.random() < initial_cooperation_degree else "D"
 
     def decide(self, agent_history):
         return self.action
