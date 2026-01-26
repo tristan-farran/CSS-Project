@@ -1,11 +1,10 @@
 ##### Tristan
 
 Removed helpers, run_til_attractor, and cooperation_metrics, and WIP section as not relelvant to my part and were just a quick sketch not fit for purpose.
-<<<<<<< HEAD
+
 Added tit for tat.
 Change default payoff to be the usual
 NetworkSimulation now owns neighbor-index caching plus cooperation_neighbor_stats, and cooperation_assortment uses the cache.
-=======
 
 
 ##### Zheng
@@ -27,4 +26,3 @@ Location: in NetworkSimulation._play_round() inside the edge loop.
 Changed the class "FermiStrategy"
 The original FermiStrategy compared payoffs using only the interaction history between i and a sampled neighbor j, where neighbor_reward is the payoff of j against i, not j’s overall payoff. This biases imitation and can cause systematic collapse (e.g., rapid all-D). It should compare i’s overall payoff (e.g., last round or moving average) and j’s overall payoff. This correction requires access to neighbor’s payoff (agent.payoff) or neighbor’s full history; adding payoff accumulation enables this.
 
->>>>>>> d8d49fb (add changes)

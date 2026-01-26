@@ -1587,3 +1587,316 @@ How can I change this so a certain rate of C can be passed as a paremeter? Curre
 ## Answer
 
 Provided code.
+
+# Prompt 2026-01-22
+
+Considering the code provided and the following research question. How can you connect the existing code to the research question. Design experiment outlines that could answer these questions. Do not implement anything yet.
+
+**RQ3**. As a control parameter (e.g., temptation $T $, ratio $b/c$, noise $K$, rewiring rate $w$) varies, is there a threshold at which the cooperative subgraph transitions from fragmented components to a giant cooperative component?
+
+**Measurements**. Use $S_\text{max}(t)$ as an order parameter and define a percolation-style susceptibility from cooperative component counts. Let $n_s(t)$ be the number of cooperative components of size $s$ at time $t$. Then
+
+$$\chi(t)=\frac{\sum_{s\neq s_\text{max} s^2n_s(t)}}{\sum_{s\neq s_\text{max} sn_s(t)}}.$$
+Look for sharp changes in $\bar{S_\text{max}}$ and peaks in $\bar\chi$ across paramter sweeps.
+
+## Answer
+
+Based on your provided code and the new Research Question (RQ3), here is an assessment of how to bridge the gap between your current simulation framework and the required percolation analysis, followed by three specific experiment outlines.
+
+### 1. Connecting the Code to the Research Question
+
+Your current codebase has the necessary "bones" (network generation, strategy evolution, modular payoffs) but lacks the specific "measurement instrumentation" required for RQ3.
+
+To answer RQ3, you need to extend the `NetworkSimulation` to calculate topological metrics of the **cooperative subgraph** rather than just counting aggregate cooperators.
+
+**The Missing Link: The `measure_percolation` Logic**
+You need a function that runs at every step (or sampling interval) that performs the following logic using `networkx`:
+
+1. **Extract Subgraph:** Identify all nodes  where `agent.strategy.action == "C"`. Create a subgraph of the main interaction graph containing *only* these nodes.
+2. **Find Components:** Use `nx.connected_components` on this subgraph to get a list of component sizes.
+3. **Calculate :** Identify the size of the largest component divided by the total system size  (Order Parameter).
+4. **Calculate :** Compute the susceptibility using the formula provided. This requires iterating over all component sizes  (excluding the largest one) to sum  and .
+
+### 2. Experiment Outlines
+
+Here are three experimental designs. Each varies a different "Control Parameter" from your RQ to search for the critical threshold.
+
+#### Experiment A: The "Temptation" Threshold (Varying )
+
+*Focus: Does increasing the incentive to defect cause the giant cooperative cluster to shatter suddenly or gradually?*
+
+* **Control Parameter:** Temptation  (using the "Weak Prisoner's Dilemma" parameterization where ).
+* **Fixed Parameters:**
+* **Graph:** Square Grid (`kind="grid"`, ). Grid topology is standard for percolation studies.
+* **Strategy:** `ImitationStrategy` (deterministic) or `FermiStrategy` (low noise, e.g., ).
+* **Range:** Sweep  from  to  in steps of .
+
+
+* **Measurement Procedure:**
+1. Initialize the network with 50% random Cooperator/Defectors.
+2. Run for `transient_steps` (e.g., 1000) to reach a quasi-steady state.
+3. Run for `measurement_steps` (e.g., 500).
+4. At each measurement step, calculate  and .
+5. **Aggregation:** Compute the temporal mean  and  for each seed. Then average over ensemble seeds.
+
+
+* **Expected Outcome:** You look for a specific  (critical benefit) where  peaks, indicating the disintegration of the global cooperative cluster.
+
+#### Experiment B: The "Thermal" Transition (Varying )
+
+*Focus: How does noise (irrationality) affect the structural coherence of cooperation?*
+
+* **Control Parameter:** Noise  (Temperature) in the `FermiStrategy`.
+* **Fixed Parameters:**
+* **Graph:** Watts-Strogatz (`k=4`, `p=0.0` or `p=0.1`).
+* **Payoff:** Fixed "Prisoners" matrix (e.g., ).
+* **Range:** Sweep  from  (near deterministic) to  (random).
+
+
+* **Measurement Procedure:**
+* Similar to Exp A, but specifically tracking how the **susceptibility** behaves as noise increases.
+* High noise usually acts as a "solvent" for clusters.
+
+
+* **Hypothesis:** There is a critical noise level  above which a giant cooperative component cannot be sustained, regardless of the payoff benefits.
+
+#### Experiment C: The Topological Transition (Varying  / )
+
+*Focus: Does the "small-world" property facilitate the formation of a giant cooperative component?*
+
+* **Control Parameter:** Rewiring probability  (labeled  in your RQ) in `watts_strogatz` graph.
+* **Fixed Parameters:**
+* **Payoff:** Fixed moderately difficult PD ( or similar).
+* **Strategy:** `ImitationStrategy`.
+* **Range:** Logarithmic sweep of  from  to .
+
+
+* **Measurement Procedure:**
+* This experiment tests the geometry. At  (Ring lattice), percolation is 1D-like (hard). At  (Random), it is mean-field.
+* Measure if the transition threshold for  shifts as  increases.
+
+
+* **Analysis:** Plot the critical threshold  (from Exp A logic) as a function of .
+
+### 3. Data Structure Design
+
+To implement this, you will need to flesh out the `run_many` function hinted at in your WIP section. I recommend structuring the results DataFrame as follows to easily plot the susceptibility peaks:
+
+| Seed | Param_Value () | Step |  |  (Susceptibility) | Coop_Frac |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 1.1 | 1001 | 0.85 | 2.4 | 0.90 |
+| 1 | 1.1 | 1002 | 0.84 | 2.8 | 0.89 |
+
+### 4. Next Step
+
+Would you like me to implement the **`measure_percolation` helper function** and the **`run_parameter_sweep`** function so you can generate the data for these plots?
+
+## Review
+
+# Prompt
+
+Implement the required functions. Provide me the code and tell me in which class to put it and provide experimental execution code. Consider that I'm working in a notebook.
+
+## Answer
+
+Here is the implementation code.
+
+### 1. Update `NetworkSimulation` Class
+
+Add the `measure_percolation` method to your `NetworkSimulation` class. This function calculates the order parameter  and the susceptibility  based on the current state of the network.
+
+**Location:** Inside the `NetworkSimulation` class in `Gemini.py`, ideally after `_get_state` and before `step`.
+
+```python
+    def measure_percolation(self):
+        """
+        Calculates the size of the giant cooperative component (S_max)
+        and the susceptibility (chi) of the cooperative subgraph.
+        """
+        # 1. Identify Cooperator Nodes
+        coop_nodes = [
+            n for n, agent in self.agents.items()
+            if agent.strategy.action == "C"
+        ]
+        
+        n_total = self.graph.number_of_nodes()
+        
+        # Edge case: No cooperators
+        if not coop_nodes:
+            return {
+                "S_max": 0.0,
+                "chi": 0.0,
+                "coop_frac": 0.0,
+                "n_components": 0
+            }
+
+        # 2. Create Cooperative Subgraph
+        # Note: subgraph() returns a view, which is efficient
+        C_subgraph = self.graph.subgraph(coop_nodes)
+        
+        # 3. Get Component Sizes
+        # connected_components yields sets of nodes
+        components = list(nx.connected_components(C_subgraph))
+        sizes = [len(c) for c in components]
+        
+        # 4. Calculate S_max (Order Parameter)
+        max_s = max(sizes)
+        S_max = max_s / n_total
+        
+        # 5. Calculate Susceptibility (chi)
+        # Remove the largest component (the "giant" candidate) from the calculation
+        # If there are multiple components of max_s, remove only one instance.
+        sizes.remove(max_s)
+        
+        # Sum of s^2 * n_s (excluding giant) / Sum of s * n_s (excluding giant)
+        # Since 'sizes' is a list of individual component sizes, 
+        # sum(s^2 * n_s) is equivalent to sum(s^2 for s in sizes)
+        if sizes:
+            numerator = sum(s**2 for s in sizes)
+            denominator = sum(s for s in sizes)
+            chi = numerator / denominator if denominator > 0 else 0.0
+        else:
+            # Only one component existed (the giant one), so susceptibility is 0
+            chi = 0.0
+
+        return {
+            "S_max": S_max,
+            "chi": chi,
+            "coop_frac": len(coop_nodes) / n_total,
+            "n_components": len(components)
+        }
+
+```
+
+---
+
+### 2. Experimental Execution Code
+
+Add this new cell to your notebook to run the parameter sweep. This code defines a custom runner `run_percolation_sweep` that iterates over a control parameter (Temptation ), collects the percolation metrics defined above, and plots the phase transition.
+
+**Location:** A new cell in your Jupyter Notebook.
+
+```python
+# %% [markdown]
+# ## RQ3: Percolation Phase Transition Experiment
+
+# %%
+def run_percolation_sweep(
+    b_values, 
+    n_seeds=5, 
+    n_steps=1000, 
+    transient=500, 
+    n_nodes=400, 
+    k=4, 
+    graph_p=0.1  # Rewiring probability (w in RQ)
+):
+    results = []
+    
+    # 1. Iterate over the Control Parameter (b)
+    for b in b_values:
+        # Define Weak Prisoner's Dilemma Matrix: T=b, R=1, P=0, S=0
+        current_matrix = {
+            ("C", "C"): (1, 1),
+            ("C", "D"): (0, b),
+            ("D", "C"): (b, 0),
+            ("D", "D"): (0, 0),
+        }
+        
+        print(f"Running b={b:.2f}...", end="\r")
+        
+        # 2. Iterate over random seeds (Ensemble averaging)
+        for seed in range(n_seeds):
+            # Initialize Simulation
+            sim = NetworkSimulation(
+                kind="watts_strogatz", # Small-world network
+                n=n_nodes,
+                k=k,
+                p=graph_p,
+                seed=seed,
+                rounds=n_steps,
+                payoff_matrix=current_matrix,
+                strategy=ImitationStrategy, # Or FermiStrategy
+                store_snapshots=False,      # Disable for speed
+                store_history=False         # Disable for speed
+            )
+            
+            # 3. Run Simulation
+            # Run transient period (discard data)
+            for _ in range(transient):
+                sim.step()
+                
+            # Run measurement period
+            metrics_buffer = {"S_max": [], "chi": [], "coop_frac": []}
+            for _ in range(n_steps - transient):
+                sim.step()
+                m = sim.measure_percolation()
+                metrics_buffer["S_max"].append(m["S_max"])
+                metrics_buffer["chi"].append(m["chi"])
+                metrics_buffer["coop_frac"].append(m["coop_frac"])
+            
+            # 4. Aggregate Temporal Mean for this Seed
+            # We average the time series for this specific run
+            results.append({
+                "b": b,
+                "seed": seed,
+                "S_max_mean": np.mean(metrics_buffer["S_max"]),
+                "chi_mean": np.mean(metrics_buffer["chi"]),
+                "coop_frac_mean": np.mean(metrics_buffer["coop_frac"])
+            })
+            
+    return pd.DataFrame(results)
+
+# %%
+# --- CONFIGURATION ---
+# Sweep b from 1.0 (Cooperation dominant) to 2.0 (Defection dominant)
+b_range = np.linspace(1.0, 1.8, 20) 
+
+# Run the experiment
+df_perc = run_percolation_sweep(
+    b_values=b_range,
+    n_seeds=5,        # Higher is better for smooth curves (e.g., 10-20)
+    n_steps=800,
+    transient=400,
+    n_nodes=900,      # Larger N gives sharper transitions (e.g., 30x30)
+    graph_p=0.1
+)
+
+# %%
+# --- PLOTTING ---
+# Aggregate over seeds (calculate mean and std dev)
+grouped = df_perc.groupby("b").agg(["mean", "std"])
+
+fig, ax1 = plt.subplots(figsize=(8, 6))
+
+# Plot S_max (Order Parameter)
+color = 'tab:blue'
+ax1.set_xlabel('Temptation b')
+ax1.set_ylabel('$S_{max}$ (Giant Component Size)', color=color)
+ax1.plot(grouped.index, grouped['S_max_mean']['mean'], color=color, marker='o', label='$S_{max}$')
+ax1.fill_between(
+    grouped.index, 
+    grouped['S_max_mean']['mean'] - grouped['S_max_mean']['std'],
+    grouped['S_max_mean']['mean'] + grouped['S_max_mean']['std'],
+    color=color, alpha=0.2
+)
+ax1.tick_params(axis='y', labelcolor=color)
+
+# Create twin axis for Susceptibility
+ax2 = ax1.twinx()  
+color = 'tab:red'
+ax2.set_ylabel('$\chi$ (Susceptibility)', color=color)
+ax2.plot(grouped.index, grouped['chi_mean']['mean'], color=color, marker='s', linestyle='--', label='$\chi$')
+ax2.fill_between(
+    grouped.index, 
+    grouped['chi_mean']['mean'] - grouped['chi_mean']['std'],
+    grouped['chi_mean']['mean'] + grouped['chi_mean']['std'],
+    color=color, alpha=0.1
+)
+ax2.tick_params(axis='y', labelcolor=color)
+
+plt.title('Percolation Phase Transition in Cooperative Subgraph')
+fig.tight_layout()
+plt.grid(True, linestyle=':', alpha=0.6)
+plt.show()
+
+```
