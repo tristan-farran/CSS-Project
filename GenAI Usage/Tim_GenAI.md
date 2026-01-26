@@ -1900,3 +1900,711 @@ plt.grid(True, linestyle=':', alpha=0.6)
 plt.show()
 
 ```
+
+# Prompt
+
+**RQ3**. As a control parameter (e.g., temptation $T $, ratio $b/c$, noise $K$, rewiring rate $w$) varies, is there a threshold at which the cooperative subgraph transitions from fragmented components to a giant cooperative component?
+
+**Measurements**. Use $S_\text{max}(t)$ as an order parameter and define a percolation-style susceptibility from cooperative component counts. Let $n_s(t)$ be the number of cooperative components of size $s$ at time $t$. Then
+
+$$\chi(t)=\frac{\sum_{s\neq s_\text{max} s^2n_s(t)}}{\sum_{s\neq s_\text{max} sn_s(t)}}.$$
+Look for sharp changes in $\bar{S_\text{max}}$ and peaks in $\bar\chi$ across paramter sweeps.
+
+Help me design an experiment in a notebook that answers the research question with a minimal experiment.
+
+## Answer
+
+To answer RQ3 regarding the transition of the cooperative subgraph, we need to design an experiment that sweeps a control parameter (specifically the benefit-to-cost ratio ) and calculates the percolation metrics you defined: the giant component size () and the susceptibility ().
+
+Here is the design for a **minimal experiment** using your provided `Prison.py` code.
+
+### Experimental Design
+
+1. **Network**: We will use a **Grid Graph** (Square Lattice). Spatial structure is essential for percolation (clustering) to occur.
+2. **Game**: Donation Game (Prisoner's Dilemma) via the `PayoffMatrix` class.
+3. **Strategy**: `FermiStrategy` (standard for studying phase transitions in evolutionary games).
+4. **Control Parameter**: We will sweep `beta`. In your code, . For a 2D grid, .
+5. **Metrics**:
+* ****: The fraction of the network occupied by the largest cooperative cluster.
+* ****: The weighted average size of the *other* cooperative clusters (susceptibility).
+
+
+
+### The Code
+
+You can copy this directly into a Jupyter Notebook cell. It assumes `Prison.py` is in the same directory (or you can paste the class definitions before this code).
+
+```python
+code
+```
+
+### What to expect in the results
+
+1. **Low **: Cooperators die out or form tiny, isolated clusters. , .
+2. **Critical Threshold**: As you increase , small clusters begin merging.
+* ** (Red Dashed Line)**: Should show a distinct **peak**. This indicates that the distribution of cluster sizes is widening—small clusters are merging into medium and large clusters, fluctuating heavily before they merge into the giant component.
+* ** (Blue Solid Line)**: Should show a sharp inflection point (a phase transition) exactly where  peaks, rising from near 0 to a significant fraction of the network.
+
+
+3. **High **: A giant cooperative cluster dominates. , while  drops back down because most nodes are now part of the giant component (which is excluded from the  calculation).
+
+### Next Step
+
+Would you like me to refine this experiment to visualize the actual network clusters at the peak of susceptibility (the "critical point") to see the fractal-like geometry of the cooperators?
+
+## Evaluation
+
+The experiment did not yield satisfactory results, initially there were errors (next prompt)
+
+# Prompt
+
+<>:67: SyntaxWarning: invalid escape sequence '\c'<>:69: SyntaxWarning: invalid escape sequence '\c'<>:67: SyntaxWarning: invalid escape sequence '\c'<>:69: SyntaxWarning: invalid escape sequence '\c'/var/folders/xh/3xjmzhy50nl08d_7tv1_m2jh0000gn/T/ipykernel_51674/367124622.py:67: SyntaxWarning: invalid escape sequence '\c'  ax2.set_ylabel('Susceptibility ($\chi$)', color=color, fontweight='bold')/var/folders/xh/3xjmzhy50nl08d_7tv1_m2jh0000gn/T/ipykernel_51674/367124622.py:69: SyntaxWarning: invalid escape sequence '\c'  color=color, marker='x', linestyle='--', label='$\chi$')100%|██████████| 20/20 [00:06<00:00,  3.10it/s]
+
+## Answer
+
+The warnings appear because Python treats backslashes in normal strings as escape characters (like `\n` for newline). When it sees `\c` (in `\chi`), it doesn't recognize it as a valid escape sequence and complains.
+
+To fix this, simply put an `r` before the strings containing LaTeX to make them **raw strings**.
+
+Here is the corrected visualization block. You can replace the bottom part of your script with this:
+
+```python
+# --- Visualization ---
+fig, ax1 = plt.subplots(figsize=(10, 6))
+
+color = 'tab:blue'
+# Use r'' for strings containing backslashes
+ax1.set_xlabel(r'Benefit-to-Cost Ratio ($b/c$)')
+ax1.set_ylabel(r'Giant Component size ($S_{max}$)', color=color, fontweight='bold')
+ax1.errorbar(df_res['b_over_c'], df_res['S_max_mean'], yerr=df_res['S_max_std'], 
+             color=color, marker='o', label=r'$S_{max}$')
+ax1.tick_params(axis='y', labelcolor=color)
+ax1.grid(True, alpha=0.3)
+
+# Instantiate a second axes that shares the same x-axis
+ax2 = ax1.twinx()  
+color = 'tab:red'
+ax2.set_ylabel(r'Susceptibility ($\chi$)', color=color, fontweight='bold')  
+ax2.errorbar(df_res['b_over_c'], df_res['chi_mean'], yerr=df_res['chi_std'], 
+             color=color, marker='x', linestyle='--', label=r'$\chi$')
+ax2.tick_params(axis='y', labelcolor=color)
+
+plt.title(f"Cooperative Percolation Transition (Grid {N_SIDE}x{N_SIDE})")
+plt.tight_layout()
+plt.show()
+
+```
+
+### Did the experiment work?
+
+Since you saw `100%|██████████|`, the calculation finished successfully despite the warnings! You should see the plot now if you run the corrected block above.
+
+**What to look for in your plot:**
+You are looking for the "critical point"—the  value where the red dashed line () spikes. That spike marks the phase transition where scattered cooperators suddenly merge into a giant cluster.
+
+## Evaluation
+
+Works, but provides a flat line since Fermi is not the best strategy as we have found earlier.
+
+# Prompt
+
+Fermi sucks, do Reinforcement learning and Titfortat. Give me both experiments. Give me the Imports, config, function adn running, and visualization in separate boxes so i can easily copy paste it. keep it if it doesnt change
+
+## Answer
+
+Here are the two experiments separated into copy-pasteable blocks.
+
+### 1. Imports
+
+Copy this first. It covers all dependencies for both experiments.
+
+```python
+import numpy as np
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+from Prison import NetworkSimulation, ReinforcementLearningStrategy, TitForTatStrategy
+
+```
+
+### 2. Configuration & Helper Functions
+
+This block defines the simulation parameters and the percolation logic (calculating  and ).
+
+```python
+# --- CONFIGURATION ---
+N_SIDE = 40           # 40x40 grid = 1600 agents
+STEPS = 1500          # Steps for strategies to settle
+TRIALS = 3            # Average over a few trials for smoothness
+BETAS = np.linspace(0.0, 3.0, 20) # Sweep b/c from 0 to 12
+
+def calculate_percolation_metrics(simulation):
+    """
+    Calculates S_max (Giant Component size) and Chi (Susceptibility).
+    """
+    state = simulation._get_state()
+    # Identify Cooperators (Action 0 is C in logic if mapped correctly, usually C=0, D=1)
+    # Check Prison.py: ActionStrategy defaults C/D. Simulation state maps D->1, C->0.
+    coop_nodes = [n for n, val in state.items() if val == 0] 
+    
+    N = simulation.graph.number_of_nodes()
+    
+    if not coop_nodes:
+        return 0.0, 0.0
+
+    # Build subgraph of Cooperators
+    G_coop = simulation.graph.subgraph(coop_nodes)
+    components = list(nx.connected_components(G_coop))
+    sizes = sorted([len(c) for c in components], reverse=True)
+    
+    # Order Parameter: Normalized Size of Giant Component
+    S_max = sizes[0] / N 
+    
+    # Susceptibility: Weighted average of smaller clusters
+    other_sizes = sizes[1:]
+    if not other_sizes:
+        chi = 0.0
+    else:
+        numerator = sum(s**2 for s in other_sizes)
+        denominator = sum(other_sizes)
+        chi = numerator / denominator if denominator > 0 else 0.0
+        
+    return S_max, chi
+
+```
+
+### 3. Experiment A: Reinforcement Learning
+
+RL agents update their Q-values based on rewards. This strategy **is sensitive to payoffs**, so you should see a phase transition as  increases.
+
+```python
+print(f"Running Experiment: Reinforcement Learning...")
+
+results_rl = []
+
+for beta in tqdm(BETAS):
+    # Setup Payoff: b/c = beta * 4
+    kbar = 4; c = 1.0; b = beta * kbar * c
+    pm = {
+        ("C", "C"): (b - c, b - c), ("C", "D"): (-c, b),
+        ("D", "C"): (b, -c),        ("D", "D"): (0, 0),
+    }
+
+    s_max_list = []
+    chi_list = []
+    
+    for _ in range(TRIALS):
+        sim = NetworkSimulation(
+            kind="grid",
+            n=N_SIDE*N_SIDE,
+            payoff_matrix=pm,
+            strategy=ReinforcementLearningStrategy,
+            # Q-learning params: learning_rate (alpha) and exploration (epsilon)
+            strategy_kwargs={'learning_rate': 0.1, 'epsilon': 0.05, 'initial_q': 0.0},
+            
+            history_window=1,   
+            store_history=True,
+            store_snapshots=False
+        )
+        
+        sim.run_until_attractor(max_steps=STEPS, check_every=100, store_cycle_states=False)
+        s_max, chi = calculate_percolation_metrics(sim)
+        
+        s_max_list.append(s_max)
+        chi_list.append(chi)
+        
+    results_rl.append({
+        "strategy": "RL",
+        "b_over_c": b/c,
+        "S_max_mean": np.mean(s_max_list),
+        "chi_mean": np.mean(chi_list),
+        "chi_std": np.std(chi_list)
+    })
+
+df_rl = pd.DataFrame(results_rl)
+print("RL Experiment Complete.")
+
+```
+
+### 4. Experiment B: Tit-For-Tat
+
+**Note:** Pure Tit-For-Tat copies the neighbor's *action* regardless of the *reward*. Because it ignores the payoff matrix, increasing  often has **no effect** on the outcome (results will look like a flat line). This serves as a control group.
+
+```python
+print(f"Running Experiment: Tit-For-Tat...")
+
+results_tft = []
+
+for beta in tqdm(BETAS):
+    # Setup Payoff (Though pure TFT ignores it, we keep the loop for consistency)
+    kbar = 4; c = 1.0; b = beta * kbar * c
+    pm = {
+        ("C", "C"): (b - c, b - c), ("C", "D"): (-c, b),
+        ("D", "C"): (b, -c),        ("D", "D"): (0, 0),
+    }
+
+    s_max_list = []
+    chi_list = []
+    
+    for _ in range(TRIALS):
+        sim = NetworkSimulation(
+            kind="grid",
+            n=N_SIDE*N_SIDE,
+            payoff_matrix=pm,
+            strategy=TitForTatStrategy,
+            strategy_kwargs={}, # TFT has no params in this implementation
+            
+            history_window=1,
+            store_history=True,
+            store_snapshots=False
+        )
+        
+        sim.run_until_attractor(max_steps=STEPS, check_every=100, store_cycle_states=False)
+        s_max, chi = calculate_percolation_metrics(sim)
+        
+        s_max_list.append(s_max)
+        chi_list.append(chi)
+        
+    results_tft.append({
+        "strategy": "TFT",
+        "b_over_c": b/c,
+        "S_max_mean": np.mean(s_max_list),
+        "chi_mean": np.mean(chi_list),
+        "chi_std": np.std(chi_list)
+    })
+
+df_tft = pd.DataFrame(results_tft)
+print("TFT Experiment Complete.")
+
+```
+
+### 5. Visualization
+
+This code plots both experiments side-by-side (or just one if you only ran one) to compare the phase transitions.
+
+```python
+# Select which data to plot (or plot both)
+data_to_plot = [
+    (df_rl, "Reinforcement Learning", 'tab:blue'),
+    (df_tft, "Tit-For-Tat", 'tab:orange')
+]
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=True)
+
+# Loop through experiments
+for i, (df, name, color) in enumerate(data_to_plot):
+    ax = axes[i]
+    
+    # 1. Giant Component (S_max)
+    ax.set_xlabel(r'Benefit-to-Cost Ratio ($b/c$)')
+    ax.set_ylabel(r'Giant Component ($S_{max}$)', color=color, fontweight='bold')
+    ax.plot(df['b_over_c'], df['S_max_mean'], color=color, marker='o', lw=2, label=r'$S_{max}$')
+    ax.tick_params(axis='y', labelcolor=color)
+    ax.grid(True, alpha=0.3)
+    ax.set_title(f"Strategy: {name}")
+
+    # 2. Susceptibility (Chi) - Twin Axis
+    ax2 = ax.twinx()
+    sec_color = 'tab:red'
+    ax2.plot(df['b_over_c'], df['chi_mean'], color=sec_color, marker='x', linestyle='--', label=r'$\chi$')
+    
+    # Only label the rightmost axis
+    if i == 1:
+        ax2.set_ylabel(r'Susceptibility ($\chi$)', color=sec_color, fontweight='bold')
+    else:
+        ax2.set_yticklabels([]) # Hide ticks on the middle shared border
+
+    ax2.tick_params(axis='y', labelcolor=sec_color)
+
+plt.tight_layout()
+plt.show()
+
+```
+
+## Evaluation
+
+Provided working code with an interesting plot, now to fully understand the experiment myself.
+
+# Prompt
+
+Explain the plots to me and refine them by adding an axis. Give additional plotting to visualize what these plots might show initially.
+
+## Answer
+
+Here is the explanation of the results, followed by the refined plotting code and the **new visualization tool** to show the actual grid "snapshots" you asked for.
+
+### 1. Explanation of the Plots
+
+These plots visualize a **Phase Transition**—the moment the system "tips" from chaos into order.
+
+* **Blue Line ( - Giant Component):**
+* **What it is:** The percentage of the grid covered by the single largest cluster of cooperators.
+* **What to look for:** A shape like an **"S-curve"**.
+* *Low :* Near 0% (Cooperators are scattered dust).
+* *High :* Near 100% (Cooperators form a giant continent).
+
+
+* **The Transition:** The steep rise in the middle is the phase transition.
+
+
+* **Red Dashed Line ( - Susceptibility):**
+* **What it is:** A measure of "clumpiness" or fluctuations. It calculates the average size of all the *other* clusters (excluding the giant one).
+* **What to look for:** A sharp **Peak (Spike)**.
+* **The Meaning:** The peak marks the exact **Critical Point**. At this specific  value, small clusters are frantically merging into medium-sized ones, but haven't yet stabilized into one giant mass. The system is most volatile here.
+
+
+
+**Why RL vs. TFT looks different:**
+
+* **Reinforcement Learning (RL):** Agents *learn* from rewards. As  rises, cooperation pays more, so they learn to do it. You will see a clear transition.
+* **Tit-For-Tat (TFT):** In this specific implementation, TFT is "blind"—it copies the neighbor's action *regardless of the score*. Because it ignores the payoff (), increasing the benefit has **no effect**. You will likely see a flat or random line.
+
+---
+
+### 2. Refined Plotting Code (with Dual Axes)
+
+This block assumes you have the `df_rl` and `df_tft` dataframes from the previous step. It adds a clearer legend and grid.
+
+```python
+# Refined Visualization with Dual Axes
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Define the data we want to plot
+experiments = [
+    (df_rl, "Reinforcement Learning (Payoff Sensitive)"),
+    (df_tft, "Tit-For-Tat (Control/Payoff Insensitive)")
+]
+
+for i, (df, title) in enumerate(experiments):
+    ax1 = axes[i]
+    
+    # --- Left Axis: S_max (Blue) ---
+    color1 = '#0072B2' # High-contrast Blue
+    ax1.set_xlabel(r'Benefit-to-Cost Ratio ($b/c$)', fontsize=12)
+    ax1.set_ylabel(r'Giant Component Size ($S_{max}$)', color=color1, fontsize=12, fontweight='bold')
+    
+    # Plot S_max with error region
+    ax1.plot(df['b_over_c'], df['S_max_mean'], color=color1, marker='o', linewidth=2, label=r'$S_{max}$')
+    ax1.fill_between(df['b_over_c'], 
+                     df['S_max_mean'] - df['chi_std']*0.01, # scaled for visibility
+                     df['S_max_mean'] + df['chi_std']*0.01, 
+                     color=color1, alpha=0.1)
+    ax1.tick_params(axis='y', labelcolor=color1)
+    ax1.set_ylim(-0.05, 1.05)
+    ax1.grid(True, linestyle=':', alpha=0.6)
+    
+    # --- Right Axis: Susceptibility (Red) ---
+    ax2 = ax1.twinx()
+    color2 = '#D55E00' # High-contrast Red
+    ax2.set_ylabel(r'Susceptibility ($\chi$)', color=color2, fontsize=12, fontweight='bold')
+    
+    # Plot Chi
+    ax2.plot(df['b_over_c'], df['chi_mean'], color=color2, linestyle='--', marker='x', linewidth=2, label=r'$\chi$')
+    ax2.tick_params(axis='y', labelcolor=color2)
+    
+    # Title
+    ax1.set_title(title, fontsize=14, pad=15)
+
+plt.tight_layout()
+plt.show()
+
+```
+
+---
+
+### 3. New: Visualize the "Snapshots" (What the plots actually show)
+
+To understand what is happening *inside* the data points, we need to see the grid. This code runs 3 quick simulations at Low, Medium, and High  for the RL strategy and plots the cooperators.
+
+* **Sub-critical:** Scattered dots.
+* **Critical:** Fractal-like structures (the peak of ).
+* **Super-critical:** A solid block (high ).
+
+```python
+from matplotlib.colors import ListedColormap
+
+def plot_snapshots(strategy_class, strat_kwargs, b_values):
+    """
+    Runs short simulations at specific b/c ratios and plots the final grid.
+    """
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    cmap = ListedColormap(['#40B0A6', '#FFBE6A']) # Teal (Coop), Gold (Defect)
+    
+    print("Generating snapshots...")
+    
+    for i, b_ratio in enumerate(b_values):
+        # 1. Setup Simulation
+        kbar = 4; c = 1.0; b = b_ratio * c # roughly beta = b_ratio/4
+        pm = {
+            ("C", "C"): (b - c, b - c), ("C", "D"): (-c, b),
+            ("D", "C"): (b, -c),        ("D", "D"): (0, 0),
+        }
+        
+        sim = NetworkSimulation(
+            kind="grid", n=40*40, payoff_matrix=pm,
+            strategy=strategy_class, strategy_kwargs=strat_kwargs,
+            history_window=1, store_history=True, store_snapshots=False
+        )
+        
+        # 2. Run
+        sim.run_until_attractor(max_steps=800, check_every=100, store_cycle_states=False)
+        
+        # 3. Plot
+        state = sim._get_state()
+        grid = np.zeros((40, 40))
+        for node, action in state.items():
+            grid[node // 40][node % 40] = action # 0=Coop, 1=Defect
+            
+        ax = axes[i]
+        ax.imshow(grid, cmap=cmap, vmin=0, vmax=1)
+        ax.set_title(f"b/c = {b_ratio}", fontsize=14, fontweight='bold')
+        ax.axis('off')
+        
+        # Add label below
+        if i == 0: txt = "Sub-Critical\n(Fragmented)"
+        elif i == 1: txt = "Critical / Transition\n(Merging Clusters)"
+        else: txt = "Super-Critical\n(Giant Component)"
+        ax.text(0.5, -0.1, txt, transform=ax.transAxes, ha='center', fontsize=12)
+
+    # Legend
+    import matplotlib.patches as mpatches
+    patches = [
+        mpatches.Patch(color='#40B0A6', label='Cooperate'),
+        mpatches.Patch(color='#FFBE6A', label='Defect')
+    ]
+    fig.legend(handles=patches, loc='upper center', ncol=2, fontsize=12, bbox_to_anchor=(0.5, 1.05))
+    plt.tight_layout()
+    plt.show()
+
+# Run the visualization for Reinforcement Learning
+# We pick 3 points: Low (2.0), Middle (approx transition ~4-6), High (10.0)
+plot_snapshots(
+    ReinforcementLearningStrategy, 
+    {'learning_rate': 0.1, 'epsilon': 0.05}, 
+    b_values=[2.0, 5.0, 10.0] 
+)
+
+```
+
+## Evaluation
+
+
+
+# Prompt
+
+The legend in the last plot overlaps with the plot header, also the critical states seem interesting. What are better values to find proper phase transitions?
+
+## Answer
+
+Here is the refined code.
+
+### Why the "Critical" values were off
+
+On a square grid, every agent has **4 neighbors**.
+
+* **Theoretical Threshold:** A rough rule of thumb is that cooperation becomes viable when the benefit-to-cost ratio  (the number of neighbors).
+* **Target:** Since , the "Phase Transition" (where the interesting fractal patterns occur) usually happens around ** to **.
+* **Below 4 (e.g., 2.5):** Cooperators are crushed (Sub-critical).
+* **Around 4.5:** The "Battleground" (Critical). This is where you see the fractal clusters.
+* **Above 6 (e.g., 8.0):** Cooperators win easily (Super-critical).
+
+
+
+### The Fix
+
+1. **Legend:** I have moved the legend **below** the figures to guarantee it never overlaps the title.
+2. **Values:** I used `[2.5, 4.6, 8.0]` to better target the distinct phases.
+3. **Automatic Detection:** I added a few lines at the top to **automatically find the peak** from your previous results (`df_rl`) if they exist. This ensures you see the *exact* critical state for your specific simulation.
+
+```python
+code
+```
+
+## Evaluation
+
+# Prompt
+
+Change plotting for one plot 
+
+# Refined Visualization with Dual Axes
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Define the data we want to plot
+experiments = [
+    (df_rl, "Reinforcement Learning (Payoff Sensitive)"),
+]
+
+for i, (df, title) in enumerate(experiments):
+    ax1 = axes[i]
+    
+    # --- Left Axis: S_max (Blue) ---
+    color1 = '#0072B2' # High-contrast Blue
+    ax1.set_xlabel(r'Benefit-to-Cost Ratio ($b/c$)', fontsize=12)
+    ax1.set_ylabel(r'Giant Component Size ($S_{max}$)', color=color1, fontsize=12, fontweight='bold')
+    
+    # Plot S_max with error region
+    ax1.plot(df['b_over_c'], df['S_max_mean'], color=color1, marker='o', linewidth=2, label=r'$S_{max}$')
+    ax1.fill_between(df['b_over_c'], 
+                     df['S_max_mean'] - df['chi_std']*0.01, # scaled for visibility
+                     df['S_max_mean'] + df['chi_std']*0.01, 
+                     color=color1, alpha=0.1)
+    ax1.tick_params(axis='y', labelcolor=color1)
+    ax1.set_ylim(-0.05, 1.05)
+    ax1.grid(True, linestyle=':', alpha=0.6)
+    
+    # --- Right Axis: Susceptibility (Red) ---
+    ax2 = ax1.twinx()
+    color2 = '#D55E00' # High-contrast Red
+    ax2.set_ylabel(r'Susceptibility ($\chi$)', color=color2, fontsize=12, fontweight='bold')
+    
+    # Plot Chi
+    ax2.plot(df['b_over_c'], df['chi_mean'], color=color2, linestyle='--', marker='x', linewidth=2, label=r'$\chi$')
+    ax2.tick_params(axis='y', labelcolor=color2)
+    
+    # Title
+    ax1.set_title(title, fontsize=14, pad=15)
+
+plt.tight_layout()
+plt.show()
+
+## Answer
+
+Here is the updated code configured for a **single plot**.
+
+I have removed the subplot array indexing (`axes[i]`) and switched to a single `fig, ax1` layout. This ensures the plot is centered and uses the full figure size.
+
+```python
+# --- Single Plot Configuration ---
+fig, ax1 = plt.subplots(figsize=(10, 6))
+
+# Unpack the single experiment data
+# (Assuming experiments list has 1 item, or you can pass df_rl directly)
+df, title = experiments[0] 
+
+# --- Left Axis: S_max (Blue) ---
+color1 = '#0072B2' # High-contrast Blue
+ax1.set_xlabel(r'Benefit-to-Cost Ratio ($b/c$)', fontsize=12)
+ax1.set_ylabel(r'Giant Component Size ($S_{max}$)', color=color1, fontsize=12, fontweight='bold')
+
+# Plot S_max
+ax1.plot(df['b_over_c'], df['S_max_mean'], color=color1, marker='o', linewidth=2, label=r'$S_{max}$')
+
+# Add Error Region (Standard Deviation)
+# Check if 'chi_std' was the intended error metric for S_max, usually it's S_max_std. 
+# If S_max_std exists in your df, use that. Otherwise, keeping your logic:
+error_val = df['S_max_std'] if 'S_max_std' in df.columns else df['chi_std'] * 0.01
+ax1.fill_between(df['b_over_c'], 
+                 df['S_max_mean'] - error_val, 
+                 df['S_max_mean'] + error_val, 
+                 color=color1, alpha=0.1)
+
+ax1.tick_params(axis='y', labelcolor=color1)
+ax1.set_ylim(-0.05, 1.05)
+ax1.grid(True, linestyle=':', alpha=0.6)
+
+# --- Right Axis: Susceptibility (Red) ---
+ax2 = ax1.twinx()
+color2 = '#D55E00' # High-contrast Red
+ax2.set_ylabel(r'Susceptibility ($\chi$)', color=color2, fontsize=12, fontweight='bold')
+
+# Plot Chi
+ax2.plot(df['b_over_c'], df['chi_mean'], color=color2, linestyle='--', marker='x', linewidth=2, label=r'$\chi$')
+ax2.tick_params(axis='y', labelcolor=color2)
+
+# Global Title and Layout
+plt.title(title, fontsize=14, pad=15)
+plt.tight_layout()
+plt.show()
+
+```
+
+## Evaluation
+
+Good code, simple prompt.
+
+# Prompt
+
+Add a full animation of the Critical Point not a snapshot?
+
+## Answer
+
+To generate a full animation of the system at the **Critical Point** (where the fractal patterns and "battlegrounds" are most active), we can use the `experiment` function from your `Prison.py` file.
+
+This code will:
+
+1. **Auto-detect** the critical benefit-to-cost ratio from your previous results (where Susceptibility  peaked).
+2. **Run a dedicated simulation** at exactly that ratio.
+3. **Save and display a GIF** showing the clusters merging and fighting over time.
+
+### Animation Code (Copy and Paste)
+
+```python
+from Prison import experiment, ImitationStrategy, ReinforcementLearningStrategy
+from IPython.display import Image
+
+# 1. FIND THE CRITICAL POINT
+# We look for the b/c value where Susceptibility (chi) was highest in your last run.
+# If df_rl (or df) doesn't exist, we default to 4.5 (typical for grids).
+try:
+    # Change 'df_rl' to 'df' if you used the single plot code
+    target_df = df_rl 
+    critical_row = target_df.loc[target_df['chi_mean'].idxmax()]
+    critical_bc = critical_row['b_over_c']
+    print(f"Auto-detected Critical Point: b/c = {critical_bc:.2f}")
+except NameError:
+    critical_bc = 4.5
+    print(f"Dataframe not found. Defaulting to known Critical Point: b/c = {critical_bc}")
+
+# 2. SETUP CONFIGURATION
+# We need a bit more time (steps) to see the full evolution at the critical point
+steps = 600 
+n_side = 50  # Larger grid (50x50) makes the animation look much better
+kbar = 4
+c = 1.0
+b = critical_bc * c
+
+# Define the Payoff Matrix for this specific point
+pm_critical = {
+    ("C", "C"): (b - c, b - c),
+    ("C", "D"): (-c, b),
+    ("D", "C"): (b, -c),
+    ("D", "D"): (0, 0),
+}
+
+# 3. RUN ANIMATION
+# Note: Changing strategy to ImitationStrategy often yields cleaner 
+# visual clusters for animation, but RL works too.
+print("Generating Animation... (This may take a minute)")
+
+anim_path = "critical_point_transition.gif"
+
+gif = experiment(
+    NetworkSimulation,
+    strategy_class=ReinforcementLearningStrategy, # Or ImitationStrategy
+    strategy_kwargs={'learning_rate': 0.1, 'epsilon': 0.15, 'initial_q': 5.0}, # Matching your config
+    steps=steps,
+    seed=42,             # Fixed seed for reproducibility
+    interval=50,         # Speed of animation (ms per frame)
+    payoff_matrix=pm_critical,
+    title=f"Critical Phase Transition (b/c = {critical_bc:.2f})",
+    kind="grid",
+    n=n_side*n_side,     # 2500 agents
+    is_grid=True,        # Render as a pixel grid
+    save_gif=True,
+    gif_path=anim_path
+)
+
+print(f"Animation saved to {anim_path}")
+display(gif)
+
+```
+
+### What to watch for in the Animation
+
+* **Early Frames:** You will likely see rapid "flashes" as agents try to cooperate and get crushed by defectors.
+* **Middle Frames (The Nucleation):** Look for small "squares" or "blocks" of Cooperators (Teal) that manage to survive. Unlike the scattered dust of sub-critical phases, these blocks will start to grow.
+* **Late Frames:** At the critical point, these blocks won't just take over instantly. They will merge, form irregular shapes, and battle at the boundaries. You might see a "breathing" effect where clusters expand and contract.
+
+## Evaluation
+
