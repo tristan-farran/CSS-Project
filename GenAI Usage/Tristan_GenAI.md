@@ -1719,3 +1719,21 @@ Enhanced readability with a global Matplotlib style, bigger type, and thicker li
 
 ###### Evaluation:
 Slighlty better.
+
+---
+
+###### Prompt:
+Clean up my notebook, right now the helper and statistics functions are massive, make it cleaner and more modular, and ensure every function has a one line docstring and no functionality changes
+/Users/tristanfarran/Documents/Code/2026/Code/CSS-Project/Code/Tristan_Code V2.ipynb
+
+###### Response:
+Refactored the helper and statistics functions into smaller, focused helpers with one-line docstrings, keeping behavior the same. Updated images helpers and config helper docstrings as well. Edits are in Tristan_Code V2.ipynb cells that define plotting helpers, metrics, and _config_cols.
+
+Details
+
+Modularized network_statistics and trailing_window_metrics into small helpers in Tristan_Code V2.ipynb.
+Added one-line docstrings to _safe_plot_name, save_fig, _config_cols, and the new helpers in Tristan_Code V2.ipynb.
+Kept return shapes and calculations identical (same defaults, same numeric conversions).
+
+###### Evaluation:
+Much better, going to read through and tweak as necessary.
