@@ -35,6 +35,7 @@ payoff_matrices = {
     },
 }
 
+
 class ActionStrategy:
     """Strategy that always plays its current action, randomly initialized."""
 

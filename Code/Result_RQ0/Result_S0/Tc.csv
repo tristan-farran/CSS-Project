@@ -1,7 +1,0 @@
-network,strategy,Tc_peak_chi,Tc_inflect_smax,Tc_C>=0.5,Tc_Smax>=0.2
-ER_p0.02,ImitationStrategy,1.0,1.125,,
-ER_p0.02,TitForTatStrategy,1.9,1.125,1.15,1.0
-Grid_20x20,ImitationStrategy,1.0,1.0750000000000002,,
-Grid_20x20,TitForTatStrategy,1.0,1.025,1.1,
-WS_k8_p0.05,ImitationStrategy,1.15,1.825,,
-WS_k8_p0.05,TitForTatStrategy,1.8,1.525,1.0,
