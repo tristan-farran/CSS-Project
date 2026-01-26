@@ -28,6 +28,7 @@ class ActionStrategy:
     def set_action(self, action):
         self.action = action
 
+
 class ImitationStrategy(ActionStrategy):
     """Imitate the action with the highest mean payoff in interactions."""
 
@@ -53,6 +54,7 @@ class ImitationStrategy(ActionStrategy):
 
         return self.action
 
+
 class FermiStrategy(ActionStrategy):
     """
     Pairwise Fermi imitation:
@@ -70,7 +72,9 @@ class FermiStrategy(ActionStrategy):
             return self.action
 
         if self._agents_ref is None:
-            raise RuntimeError("FermiStrategy needs _agents_ref injected (agents dict).")
+            raise RuntimeError(
+                "FermiStrategy needs _agents_ref injected (agents dict)."
+            )
 
         neighbour_id = self.rng.choice(list(agent_history.keys()))
         # If we have never recorded neighbor action, do nothing
@@ -110,6 +114,7 @@ class FermiStrategy(ActionStrategy):
             self.action = interactions[-1].neighbor_action
 
         return self.action
+
 
 class ReinforcementLearningStrategy(ActionStrategy):
     """
@@ -155,6 +160,7 @@ class ReinforcementLearningStrategy(ActionStrategy):
         self._last_action = action
         return self.action
 
+
 class TitForTatStrategy(ActionStrategy):
     """
     Start random, then mirror the most recent neighbor action.
@@ -176,6 +182,7 @@ class TitForTatStrategy(ActionStrategy):
             self.action = "C"
 
         return self.action
+
 
 class Agent:
     """Minimal agent holding a strategy, payoff, and history."""
@@ -210,6 +217,7 @@ class Agent:
         )
         if len(lst) > self.history_window:
             del lst[: -self.history_window]
+
 
 class Network:
     """NetworkX graph wrapper."""
@@ -248,6 +256,7 @@ class Network:
         else:
             raise NotImplementedError
 
+
 class NetworkSimulation(Network):
     """
     Base class for running evolutionary games on any NetworkX graph.
@@ -263,7 +272,9 @@ class NetworkSimulation(Network):
         strategy_kwargs=None,
         payoff_matrix=None,
         T=None,
-        R=1.0, P=0.0, S=0.0,
+        R=1.0,
+        P=0.0,
+        S=0.0,
         rng=None,
         history_window=20,
         store_history=True,
@@ -361,8 +372,12 @@ class NetworkSimulation(Network):
             agents[node_a].payoff += payoff_a_norm
             agents[node_b].payoff += payoff_b_norm
 
-            agents[node_a].record_interaction(node_b, action_a, action_b, payoff_a_norm, payoff_b_norm)
-            agents[node_b].record_interaction(node_a, action_b, action_a, payoff_b_norm, payoff_a_norm)
+            agents[node_a].record_interaction(
+                node_b, action_a, action_b, payoff_a_norm, payoff_b_norm
+            )
+            agents[node_b].record_interaction(
+                node_a, action_b, action_a, payoff_b_norm, payoff_a_norm
+            )
 
             agents[node_a].record_interaction(
                 node_b, action_a, action_b, payoff_a, payoff_b
@@ -370,8 +385,6 @@ class NetworkSimulation(Network):
             agents[node_b].record_interaction(
                 node_a, action_b, action_a, payoff_b, payoff_a
             )
-
-
 
     def _get_state(self):
         return {
@@ -501,6 +514,7 @@ class NetworkSimulation(Network):
         for _ in range(self.rounds):
             self.step()
 
+
 class PayoffMatrix:
     def __init__(self, beta_values, kbar=4.0, c=1.0):
         self.matrices, self.meta = self.generate(beta_values, kbar, c)
@@ -522,7 +536,7 @@ class PayoffMatrix:
             ("D", "C"): (T, S),
             ("D", "D"): (P, P),
         }
-    
+
     def generate(self, beta_values, kbar, c):
         """
         Returns:
@@ -532,11 +546,23 @@ class PayoffMatrix:
         matrices = {}
         rows = []
         for beta in beta_values:
-            b = float(beta) * float(kbar) * float(c)  # b/c = beta*kbar  => b = beta*kbar*c
-            name = f"beta_{beta:.2f}"                 # IMPORTANT: first number is beta for parsing
+            b = (
+                float(beta) * float(kbar) * float(c)
+            )  # b/c = beta*kbar  => b = beta*kbar*c
+            name = f"beta_{beta:.2f}"  # IMPORTANT: first number is beta for parsing
             matrices[name] = self.donation(b=b, c=c)
-            rows.append({"payoff": name, "beta": float(beta), "kbar": float(kbar), "c": float(c), "b": float(b), "b_over_c": float(b / c)})
+            rows.append(
+                {
+                    "payoff": name,
+                    "beta": float(beta),
+                    "kbar": float(kbar),
+                    "c": float(c),
+                    "b": float(b),
+                    "b_over_c": float(b / c),
+                }
+            )
         return matrices, pd.DataFrame(rows)
+
 
 def experiment(
     network_simulation,
