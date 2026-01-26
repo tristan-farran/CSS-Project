@@ -14,6 +14,26 @@ from matplotlib.colors import ListedColormap
 from matplotlib.ticker import PercentFormatter
 from matplotlib.animation import FuncAnimation, PillowWriter
 
+payoff_matrices = {
+    "Default": {
+        ("C", "C"): (3, 3),
+        ("C", "D"): (0, 4),
+        ("D", "C"): (4, 0),
+        ("D", "D"): (1, 1),
+    },
+    "Canonical": {
+        ("C", "C"): (-1, -1),
+        ("C", "D"): (-3, 0),
+        ("D", "C"): (0, -3),
+        ("D", "D"): (-2, -2),
+    },
+    "Snowdrift": {
+        ("C", "C"): (500, 500),
+        ("C", "D"): (200, 800),
+        ("D", "C"): (800, 200),
+        ("D", "D"): (0, 0),
+    },
+}
 
 class ActionStrategy:
     """Strategy that always plays its current action, randomly initialized."""
