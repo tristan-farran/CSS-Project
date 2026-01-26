@@ -1,5 +1,7 @@
 # Prisoner's Dilemma
 
+Intepretation!
+
 ## Wednesday 21 January Targets
 ### RQ0 (Baseline existence): Can cooperation persist?
 - Momo
@@ -9,6 +11,9 @@
 
 ### RQ2 (Cooperative clusters): Size, stability, and morphology
 - Iga
+- Colour scatter plot by time
+- log log the probability dists to look for powerlaw-exp
+- pick plots
 
 ### RQ3 (Phase transitions / percolation-like behavior): Are there thresholds?
 - Tim
