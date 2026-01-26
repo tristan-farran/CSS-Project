@@ -19,3 +19,6 @@
 
 $$\chi(t)=\frac{\sum_{s\neq s_\text{max} s^2n_s(t)}}{\sum_{s\neq s_\text{max} sn_s(t)}}.$$
 Look for sharp changes in $\bar{S_\text{max}}$ and peaks in $\bar\chi$ across paramter sweeps.
+
+
+Cleaning up all the submission materials according to how they want them (requirements etc. - listed in grading scheme and projects lecture.)
