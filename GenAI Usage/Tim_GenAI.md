@@ -1,4 +1,8 @@
-Using Google Gemini Pro
+Using Google Gemini Pro with a free student account.
+
+# General evaluation
+
+This file contains all prompts and answers (sometimes abbreviated) and sometimes with evaluations provided on the answer by the machine. I would like to spend a few words on my general experience with Generative AI. 
 
 # Prompt 19/01/2025 18:52
 Attached is our current codebase which contains GridImitationModel which is used within the demo function.
@@ -2607,4 +2611,301 @@ display(gif)
 * **Late Frames:** At the critical point, these blocks won't just take over instantly. They will merge, form irregular shapes, and battle at the boundaries. You might see a "breathing" effect where clusters expand and contract.
 
 ## Evaluation
+
+# Prompt 
+
+The existing code currently does not properly show any plots. Also suggest possible improvements to the code to study the Imitation Strategy to answer the following research question with an explanation of the provided new/changed code. Work per notebook.
+
+**RQ3**. As a control parameter (e.g., temptation $T $, ratio $b/c$, noise $K$, rewiring rate $w$) varies, is there a threshold at which the cooperative subgraph transitions from fragmented components to a giant cooperative component?
+**Measurements**. Use $S_\text{max}(t)$ as an order parameter and define a percolation-style susceptibility from cooperative component counts. Let $n_s(t)$ be the number of cooperative components of size $s$ at time $t$. Then
+$$\chi(t)=\frac{\sum_{s\neq s_\text{max} s^2n_s(t)}}{\sum_{s\neq s_\text{max} sn_s(t)}}.$$
+Look for sharp changes in $\bar{S_\text{max}}$ and peaks in $\bar\chi$ across paramter sweeps.
+
+## Answer
+
+Here is an assessment of the code issues and a complete, improved solution to address your research question (RQ3) regarding percolation phase transitions in the Prisoner's Dilemma.
+
+### **1. Diagnosis of Issues**
+
+* **Plotting Error:** The primary reason the plots are not showing is the line `display(plt.show())`. `plt.show()` renders the image to the output and returns `None`, so wrapping it in `display()` effectively asks the notebook to display "Nothing."
+* **"Lag" vs. History:** The comment `# --- FIX: ELIMINATE LAG ---` is followed by `history_window=10`. This is contradictory. In game theory simulations, a "window" usually implies averaging payoffs over previous steps. A window of 10 *adds* memory/lag. To simulate pure, reactive Imitation (copying the current best neighbor), the window should be `1` (instantaneous).
+* **Statistical Noise:** `TRIALS = 3` is too low to observe a smooth susceptibility () curve. Near a phase transition, fluctuations are high, requiring more averaging.
+
+### **2. Improved Code Solution**
+
+I have refined the code below to specifically target **RQ3**.
+
+**Key Improvements:**
+
+1. **Corrected Visualization:** Fixed the `matplotlib` commands to properly display the dual-axis plot.
+2. **Phase Transition Parameters:** Adjusted `history_window=1` to ensure agents react to the *current* state of the network, which is critical for observing sharp phase transitions.
+3. **Enhanced Statistics:** Increased `TRIALS` and grid size (`N_SIDE`) slightly to make the "Giant Component" () and "Susceptibility" () metrics statistically significant.
+4. **Error Bars:** Added shade regions to the plot to visualize the standard deviation, helping you see where the system behavior is most volatile (typical of phase transitions).
+
+```python
+import numpy as np
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+
+# Depending on your environment, you might need this:
+%matplotlib inline
+
+# --- ASSUMING PRISON MODULE IS AVAILABLE AS PER YOUR FILE ---
+from Prison import ImitationStrategy
+from Prison import NetworkSimulation
+
+# --- HELPER FUNCTION: PERCOLATION METRICS ---
+def calculate_percolation_metrics(simulation):
+    """
+    Calculates the Order Parameter (S_max) and Susceptibility (Chi).
+    S_max: Fraction of nodes in the largest cluster of cooperators.
+    Chi: Average size of non-giant cooperative clusters (measure of fluctuations).
+    """
+    state = simulation._get_state()
+    # Identify Cooperator nodes (Action 0 is typically Cooperation in these libs)
+    coop_nodes = [n for n, action in state.items() if action == 0]
+    N = simulation.graph.number_of_nodes()
+    
+    # If no cooperators exist, order and susceptibility are 0
+    if not coop_nodes:
+        return 0.0, 0.0
+
+    # Create the subgraph of ONLY cooperators
+    G_coop = simulation.graph.subgraph(coop_nodes)
+    
+    # Get all connected components (clusters)
+    components = list(nx.connected_components(G_coop))
+    
+    if not components:
+        return 0.0, 0.0
+
+    # Sort by size (largest to smallest)
+    sizes = sorted([len(c) for c in components], reverse=True)
+    
+    # 1. Order Parameter: Size of largest cluster normalized by N
+    S_max = sizes[0] / N 
+    
+    # 2. Susceptibility: Second moment of the distribution of small clusters
+    other_sizes = sizes[1:] # Exclude the giant component
+    
+    if not other_sizes:
+        chi = 0.0
+    else:
+        # Formula: Sum(s^2 * n_s) / Sum(s * n_s) 
+        # Since 'other_sizes' is a list of ALL sizes, summing s^2 iterates over every node in those clusters
+        numerator = sum(s**2 for s in other_sizes)
+        denominator = sum(other_sizes)
+        chi = numerator / denominator if denominator > 0 else 0.0
+        
+    return S_max, chi
+
+# --- CONFIGURATION FOR RQ3 ---
+N_SIDE = 30           # 900 Agents (Good balance of speed vs accuracy)
+STEPS = 200           # Allow system to settle into a steady state
+TRIALS = 5            # Higher trials to smooth the susceptibility curve
+# Focus the sweep on the critical region (b/c between 0 and 2 is usually critical for simple grids)
+BETAS = np.linspace(0.0, 2.5, 25) 
+
+results = []
+
+print(f"Starting Simulation: {N_SIDE}x{N_SIDE} Grid, {TRIALS} Trials per Beta...")
+
+for beta in tqdm(BETAS):
+    # Setup Payoff Parameters
+    # b/c ratio is the main control parameter
+    kbar = 4 # Average degree for grid
+    c = 1.0
+    b = beta * kbar * c # Scaling b relative to neighbors
+    
+    # Standard Prisoner's Dilemma Payoffs
+    pm = {
+        ("C", "C"): (b - c, b - c),
+        ("C", "D"): (-c, b),
+        ("D", "C"): (b, -c),
+        ("D", "D"): (0, 0),
+    }
+
+    s_max_list = []
+    chi_list = []
+    
+    for _ in range(TRIALS):
+        sim = NetworkSimulation(
+            kind="grid",
+            n=N_SIDE*N_SIDE,
+            payoff_matrix=pm,
+            strategy=ImitationStrategy,
+            strategy_kwargs={},
+            # FIX: Window=1 for immediate imitation (High "Temperature"/Reactivity)
+            history_window=1,   
+            store_history=False, # Optimization: Don't store full history if not needed
+            store_snapshots=False
+        )
+        
+        # Run simulation
+        sim.run_until_attractor(max_steps=STEPS, check_every=50, store_cycle_states=False)
+        
+        # Measure Order and Susceptibility
+        s_max, chi = calculate_percolation_metrics(sim)
+        s_max_list.append(s_max)
+        chi_list.append(chi)
+        
+    results.append({
+        "b_over_c": b/c,
+        "S_max_mean": np.mean(s_max_list),
+        "S_max_std": np.std(s_max_list),
+        "chi_mean": np.mean(chi_list),
+        "chi_std": np.std(chi_list)
+    })
+
+df_res = pd.DataFrame(results)
+
+# --- VISUALIZATION ---
+fig, ax1 = plt.subplots(figsize=(12, 7))
+
+# 1. Plot Giant Component (Order Parameter) on Left Axis
+color_s = 'tab:blue'
+ax1.set_xlabel(r'Benefit-to-Cost Ratio ($b/c$)', fontsize=14)
+ax1.set_ylabel(r'Giant Component Size ($S_{max}$)', color=color_s, fontweight='bold', fontsize=14)
+
+# Plot Mean
+ax1.plot(df_res['b_over_c'], df_res['S_max_mean'], color=color_s, marker='o', lw=2, label=r'$S_{max}$')
+# Plot Error Bands
+ax1.fill_between(df_res['b_over_c'], 
+                 df_res['S_max_mean'] - df_res['S_max_std'], 
+                 df_res['S_max_mean'] + df_res['S_max_std'], 
+                 color=color_s, alpha=0.2)
+
+ax1.tick_params(axis='y', labelcolor=color_s)
+ax1.grid(True, which='both', alpha=0.3)
+
+# 2. Plot Susceptibility (Fluctuations) on Right Axis
+ax2 = ax1.twinx()  
+color_chi = 'tab:red'
+ax2.set_ylabel(r'Susceptibility ($\chi$)', color=color_chi, fontweight='bold', fontsize=14)  
+
+# Plot Mean
+ax2.plot(df_res['b_over_c'], df_res['chi_mean'], color=color_chi, marker='x', linestyle='--', lw=2, label=r'$\chi$')
+# Plot Error Bands (Often large near transition)
+ax2.fill_between(df_res['b_over_c'], 
+                 df_res['chi_mean'] - df_res['chi_std'], 
+                 df_res['chi_mean'] + df_res['chi_std'], 
+                 color=color_chi, alpha=0.1)
+
+ax2.tick_params(axis='y', labelcolor=color_chi)
+
+# Formatting
+plt.title(f"Percolation Phase Transition\nGrid {N_SIDE}x{N_SIDE}, Imitation Strategy", fontsize=16)
+fig.tight_layout()
+
+# CORRECT WAY TO DISPLAY
+plt.show()
+
+```
+
+### **3. Explanation of Changes & Metrics**
+
+#### **Why these metrics answer RQ3?**
+
+To determine if there is a "Threshold" (Critical Point), we look for specific signatures in the two metrics you requested:
+
+1. ** (Order Parameter):**
+* **What it is:** The percentage of the network occupied by the largest connected cluster of Cooperators.
+* **Signature:** Look for a sharp jump (from 0 to non-zero) or a steep increase. This indicates the **Phase Transition** point where cooperation explodes from isolated pockets to a network-wide phenomenon.
+
+
+2. ** (Susceptibility):**
+* **What it is:** The "average size" of the *other* clusters (excluding the giant one). In physics, susceptibility measures how sensitive the system is to small perturbations.
+* **Signature:** You should see a **Peak** in  exactly where  rises most sharply.
+* **Interpretation:** At the critical threshold, the system is "undecided." Small clusters of cooperators are constantly merging and breaking apart, creating large fluctuations. This "Critical Slowing Down" or high variance is the hallmark of a phase transition.
+
+
+
+#### **Why `history_window=1`?**
+
+In your original code, `history_window=10` meant agents made decisions based on the average payoff of the last 10 turns.
+
+* **Effect:** This "memory" acts as a low-pass filter, dampening the fluctuations.
+* **Result:** While it might stabilize cooperation, it smears out the phase transition, making the "sharp threshold" you are looking for in RQ3 harder to detect. Setting it to `1` restores the sharp, reactive dynamics necessary for percolation analysis.
+
+## Evaluation
+
+Provided properly working code, however the code did not provide any novel insight or experiment.
+
+# Prompt
+
+The code outputs the following graph showing only straight lines. What could cause this observation?
+
+## Answer
+
+This observation (perfectly flat lines with non-zero values) strongly suggests that your simulation is **not evolving**. You are measuring the statistics of the **initial random distribution** (likely a 50/50 split of Cooperators and Defectors) rather than the final outcome of the game.
+
+Here is a breakdown of why this is happening and how to fix it.
+
+### 1. The Diagnosis: "Frozen" Initial State
+
+* **What we see:** The graph shows  and  regardless of the parameter .
+* **Why it's suspicious:**
+* If the system evolved to **Full Defection**,  would be .
+* If it evolved to **Full Cooperation**,  would be .
+* A value of  is characteristic of a random  grid where agents are initialized with a 50% probability of cooperating. This density () is below the "percolation threshold" (), so you see medium-sized clusters (the 0.16 value) rather than a giant spanning cluster.
+
+
+* **Conclusion:** The agents are not updating their strategies. The simulation is taking a snapshot of the starting line and calling it the finish line.
+
+### 2. The Likely Cause: `store_history` vs. Strategy
+
+In the provided code, there is a likely conflict between the `ImitationStrategy` and the `store_history` flag.
+
+The `ImitationStrategy` (and `history_window=1`) often requires looking back at previous steps to compare payoffs. If `store_history` is set to `False` to save memory, the strategy object may simply fail to find the data it needs to calculate the next move. Instead of crashing, many simulation libraries will catch the error and default to "keep current action," resulting in no changes.
+
+### 3. The Fix
+
+You need to ensure the simulation stores enough data for the agents to make decisions.
+
+**Step 1: Enable History**
+Change the simulation initialization to store history.
+
+```python
+sim = NetworkSimulation(
+    kind="grid",
+    n=N_SIDE*N_SIDE,
+    payoff_matrix=pm,
+    strategy=ImitationStrategy,
+    strategy_kwargs={},
+    history_window=1,   
+    store_history=True,  # <--- CHANGE THIS TO TRUE
+    store_snapshots=False
+)
+
+```
+
+**Step 2: Verify Evolution (Debugging)**
+Before running the full loop, run a single trial and print the step count to prove the system is moving.
+
+```python
+# Debug block
+test_sim = NetworkSimulation(
+    kind="grid",
+    n=400,
+    payoff_matrix=pm, # Ensure pm is defined
+    strategy=ImitationStrategy,
+    strategy_kwargs={},
+    history_window=1,
+    store_history=True 
+)
+test_sim.run_until_attractor(max_steps=100)
+print(f"Simulation stopped after {len(test_sim.history)} steps.") 
+# If this prints "0 steps" or "1 steps", the simulation is still not running.
+
+```
+
+### 4. Summary of Metrics to Expect
+
+Once fixed, your graph should change drastically:
+
+* **Low :**  should drop to near  (Defectors win).
+* **High :**  should rise to near  (Cooperators win).
+* **Critical Region:** In between, you will see the curve rise sharply, and the red dashed line () should show a distinct peak, confirming the phase transition (RQ3).
 
