@@ -22,3 +22,6 @@ Location: in NetworkSimulation._play_round() inside the edge loop.
 Changed the class "FermiStrategy"
 The original FermiStrategy compared payoffs using only the interaction history between i and a sampled neighbor j, where neighbor_reward is the payoff of j against i, not j’s overall payoff. This biases imitation and can cause systematic collapse (e.g., rapid all-D). It should compare i’s overall payoff (e.g., last round or moving average) and j’s overall payoff. This correction requires access to neighbor’s payoff (agent.payoff) or neighbor’s full history; adding payoff accumulation enables this.
 
+
+##### Iga
+Added functions in Prison.py - both separately and inside NetworkSImulation. Shouldnt affect anyone else tho, no stuff delated or changed otherwise.
