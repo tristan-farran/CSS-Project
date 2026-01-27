@@ -1,4 +1,4 @@
-# Iterated Prisoner’s Dilemma on Networks (IPDN)
+# Iterated Prisoner’s Dilemma On Networks (IPDN)
 
 A small simulation framework to study how **cooperation emerges (or collapses)** in the Iterated Prisoner’s Dilemma when agents interact on different **network topologies** and evolve under different **update rules**.
 
