@@ -278,6 +278,23 @@ class Network:
             raise NotImplementedError
 
 
+# needed for computing stuff for RQ2:
+def jaccard_sets(A, B):
+    if not A and not B:
+        return 1.0
+    if not A or not B:
+        return 0.0
+    return len(A & B) / len(A | B)
+
+def jaccard_indices(set1, set2):
+    intersection = len(set1 & set2)
+    union = len(set1 | set2)
+    return intersection / union if union > 0 else 0
+
+def cluster_sizes(graph, cooperators):
+    subgraph = graph.subgraph(cooperators)
+    return [len(c) for c in nx.connected_components(subgraph)]
+
 class NetworkSimulation(Network):
     """
     Base class for running evolutionary games on any NetworkX graph.
@@ -336,6 +353,19 @@ class NetworkSimulation(Network):
         self.agents = {}
         self.snapshots = []
         self._initialize_agents()
+
+        # metrics for RQ22
+        self.JL = []                    
+        self.JV = []                    
+        self.Smax = []                  
+        self.c = []                         
+        self.cluster_sizes_ts = []      
+
+        # previous state
+        self.prev_largest_cluster = set()
+        self.prev_cooperators = set()
+
+
 
     def _initialize_agents(self):
         for agent_id in self.graph.nodes:
@@ -531,6 +561,23 @@ class NetworkSimulation(Network):
             "largest_coop_cluster": int(sizes[0]) if sizes else 0,
             "mean_coop_cluster_size": float(np.mean(sizes)) if sizes else 0.0,
         }
+    
+    def _update_cluster_metrics(self):
+        cooperators = {node for node, a in self.agents.items() if a.strategy.action == "C"}
+        N = self.graph.number_of_nodes()
+        c_frac = len(cooperators) / N
+        self.c.append(c_frac)
+        sizes = cluster_sizes(self.graph, cooperators)
+        self.cluster_sizes_ts.append(sizes)
+        sub = self.graph.subgraph(cooperators)
+        largest = set(max(nx.connected_components(sub), key=len, default=[]))
+        self.Smax.append(len(largest) / N)
+        self.JL.append(jaccard_indices(self.prev_largest_cluster, largest) if self.prev_largest_cluster else 0.0)
+        self.JV.append(jaccard_sets(self.prev_cooperators, cooperators) if self.prev_cooperators else 0.0)
+        # update prev
+        self.prev_largest_cluster = largest
+        self.prev_cooperators = cooperators
+
 
     def step(self):
         self._play_round()
