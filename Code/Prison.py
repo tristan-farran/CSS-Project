@@ -286,7 +286,7 @@ class NetworkSimulation(Network):
     def __init__(
         self,
         kind="grid",
-        n=100,
+        n=400,
         seed=42,
         rounds=100,
         strategy=ActionStrategy,
@@ -300,6 +300,7 @@ class NetworkSimulation(Network):
         history_window=20,
         store_history=True,
         store_snapshots=True,
+        graph=None,
         **graph_kwargs,
     ):
         self.strategy = strategy
@@ -323,7 +324,12 @@ class NetworkSimulation(Network):
         self.history_window = history_window
         self.store_history = store_history
         self.store_snapshots = store_snapshots
-        self.generate_graph(kind=kind, n=n, seed=seed, **graph_kwargs)
+        if graph is None:
+            self.generate_graph(kind=kind, n=n, seed=seed, **graph_kwargs)
+        else:
+            self.kind = kind
+            self.graph = graph
+            self.seed = seed
         self.edge_list = list(self.graph.edges())
         self.deg = dict(self.graph.degree())
         self._neighbor_index_cache = None
@@ -622,6 +628,7 @@ def experiment(
     n_nodes = graph.number_of_nodes()
 
     C_COOP, C_DEFECT = "#40B0A6", "#FFBE6A"
+
     cmap = ListedColormap([C_COOP, C_DEFECT])
     fig, (ax_sim, ax_stats) = plt.subplots(
         2, 1, figsize=(7, 8), gridspec_kw={"height_ratios": [4, 1]}

@@ -1,3 +1,7 @@
+##### Tristan
+
+Slightly changed colours in Prison.py
+Sped up the simulations by caching generated network architectures
 
 ##### Zheng
 

@@ -1728,12 +1728,29 @@ Clean up my notebook, right now the helper and statistics functions are massive,
 
 ###### Response:
 Refactored the helper and statistics functions into smaller, focused helpers with one-line docstrings, keeping behavior the same. Updated images helpers and config helper docstrings as well. Edits are in Tristan_Code V2.ipynb cells that define plotting helpers, metrics, and _config_cols.
-
-Details
-
 Modularized network_statistics and trailing_window_metrics into small helpers in Tristan_Code V2.ipynb.
 Added one-line docstrings to _safe_plot_name, save_fig, _config_cols, and the new helpers in Tristan_Code V2.ipynb.
 Kept return shapes and calculations identical (same defaults, same numeric conversions).
 
 ###### Evaluation:
 Much better, going to read through and tweak as necessary.
+
+---
+
+###### Prompt:
+We're currently rerunning the architecture sweep each time in each statistics function, this is very inefficient lets fix it to do all the simulations we need up front and then process them
+
+###### Response:
+Refactored the RQ1 notebook to run all simulations once up front, then reuse the results for each stats section. The sweep configs now feed a shared job index, and each section filters base_df instead of re-running the sweep.
+Added graph caching in the batch runner and turned off path metrics for the STRUCTURE jobs.
+Cached graphs in run_simulation_batch keyed by (kind, graph_kwargs, n, seed) and reused across strategies/payoffs. This avoids regenerating the same network for each job.
+Set include_path_metrics=False for the STRUCTURE configs.
+
+###### Reprompt:
+Speed up my statistics and animation calculations using notebook safe parallelism and with progress bars, do not modify prisoners.py just my notebook RQ1
+
+###### Response:
+Updated the notebook to add notebook‑safe parallelism and progress bars for both the statistics batch runs and the animation loop, without touching Prison.py.
+
+###### Evaluation:
+Works, still not very fast due to high N but functional and relativelt clean.

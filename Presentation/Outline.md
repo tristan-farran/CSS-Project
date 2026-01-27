@@ -5,11 +5,6 @@
 - Research question X
     - Hypothesis
 
-# Results
-
-## Research Question X
-Results
-
 
 # Conclusions
 
