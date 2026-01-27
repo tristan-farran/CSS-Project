@@ -583,6 +583,7 @@ class NetworkSimulation(Network):
         self._play_round()
         if self.store_snapshots:
             self.snapshots.append(self._get_state())
+        self._update_cluster_metrics()
 
     def run(self):
         for _ in range(self.rounds):
