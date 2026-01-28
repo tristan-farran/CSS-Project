@@ -65,3 +65,28 @@
   - Time-series \(C(t)\) curves to show persistence vs collapse
   - Parameter-sweep plots (phase-diagram style) for later extensions
 
+## 4) Incorporate a tunable temptation parameter
+> After literature reviewing, I want to add a tunable payoff matric beyond the fixed ones so that we can try to explore the phase change as we tune the control parameter. So I first discuss the feasibility of this idea in my current code with GPT. 
+
+### Prompt
+> "Now I want to make the payoff matric tunable by some parameter. It's mentioned in literature that b, c and <k> can determine the cooperation persistence. And they can be set into a linear function like b = beta*<k>*c. So that I can just set the coefficient beta as teh control parameter. Based on my current code, is there any big change according to this idea? If so, show me the possible changes."
+
+### Summarized output
+- Provided the changes needed to implement the new plan:
+  - Fix ⟨k⟩=4 (by choosing Grid, ER with p ≈ 4/(n−1), and WS with k=4)
+  - Fix c=1
+  - Sweep β ∈[0.5,0.8,1.0,1.5,2.0,...]
+  - Set b/c=β⟨k⟩ → since c=1, b=β⟨k⟩
+  - Use the donation game payoff mapping: R=b−c,S=−c,T=b,P=0
+  - No class changes, only the sweep code + payoff definitions.
+
+  ## 5) Visualization ideas and functions
+### Prompt
+> "After tuning-temptation experiemnts, the data now are now "continuous", like the mean coopration fractions and fixation are recorded with the control parameter changing in a small step. To better show the change trends, show me some visualization ideas."
+
+### Summarized output
+- Proposed multiple plot types to better show the trends:
+  - line plots with uncertainties for mean cooperation and fixation probabilities 
+  - Violin plots for chi and Smax at each T 
+  - Heatmap for mean_barC across (network x T), one heatmap per strategy
+
